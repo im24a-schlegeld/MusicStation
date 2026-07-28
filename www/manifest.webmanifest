@@ -1,0 +1,35 @@
+{
+  "id": "/",
+  "name": "Archive",
+  "short_name": "Archive",
+  "description": "Your personal music archive.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/assets/brand-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/brand-logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Release",
+      "short_name": "Add",
+      "url": "/add",
+      "icons": [{ "src": "/assets/brand-logo.png", "sizes": "1024x1024" }]
+    }
+  ]
+}
