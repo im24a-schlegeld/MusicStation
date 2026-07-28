@@ -1,0 +1,13 @@
+.codex-server*.log
+
+node_modules/
+.vscode/
+.idea/
+android/.idea/
+android/.gradle/
+android/app/build/
+android/build/
+
+*.log
+desktop.ini
+.env
