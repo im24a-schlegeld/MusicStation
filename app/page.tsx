@@ -1,5 +1,4 @@
 import Script from "next/script";
-import { BlobBridge } from "./BlobBridge";
 
 export default function HomePage() {
   return (
@@ -8,7 +7,6 @@ export default function HomePage() {
         <img className="app-launch-logo" src="/assets/brand-logo.png" alt="" draggable={false} />
       </div>
       <div id="app" />
-      <BlobBridge />
       <Script type="module" src="/src/main.js" strategy="afterInteractive" />
     </>
   );

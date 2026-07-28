@@ -2124,7 +2124,7 @@ function renderAddPage() {
     <header class="album-top">
       <a class="back-link" href="/" data-home-link>Back</a>
       <div class="album-stats">
-        <span>Project data</span>
+        <span>Device storage</span>
         <span>Add</span>
       </div>
     </header>
@@ -2135,7 +2135,7 @@ function renderAddPage() {
         <h1>Add Release</h1>
       </section>
 
-      <form class="add-form" data-add-form action="/api/releases" method="post" enctype="multipart/form-data">
+      <form class="add-form" data-add-form>
         <label>
           <span>Title</span>
           <input name="title" type="text" required autocomplete="off" />
@@ -2154,11 +2154,6 @@ function renderAddPage() {
         <label>
           <span>Release year</span>
           <input name="releaseYear" type="number" min="1900" max="2100" value="${new Date().getFullYear()}" required />
-        </label>
-
-        <label>
-          <span>Upload code</span>
-          <input name="uploadCode" type="password" required autocomplete="current-password" />
         </label>
 
         <label>
@@ -3052,70 +3047,74 @@ async function submitUpload(form) {
   const title = String(formData.get("title") || "").trim();
   const kind = String(formData.get("kind") || "Single");
   const releaseYear = String(formData.get("releaseYear") || new Date().getFullYear());
-  const uploadCode = String(formData.get("uploadCode") || "");
   const submitButton = form.querySelector("[type='submit']");
   const status = form.querySelector("[data-upload-status]");
   if (!title) return;
 
   if (submitButton) submitButton.disabled = true;
-  if (status) status.textContent = "Saving to project database...";
+  if (status) status.textContent = isStandaloneApp() ? "Saving on this device..." : "Preparing temporary release...";
 
   try {
-    if (typeof window.archiveUploadBlob !== "function") throw new Error("Upload service is not ready");
-
-    const releaseKey = `${slugify(title) || "release"}-${Date.now()}`;
+    const id = `${slugify(title) || "release"}-${Date.now()}`;
     const coverFile = form.elements.cover.files[0];
     const audioFiles = [...form.elements.audio.files];
-    let coverUrl = "";
-    const audio = [];
+    const storedTracks = audioFiles.map((file, index) => ({
+      number: index + 1,
+      title: cleanLocalTrackTitle(file.name, title, kind, index),
+      file
+    }));
+    const displayTracks = storedTracks.map((track) => ({
+      number: track.number,
+      title: track.title,
+      src: URL.createObjectURL(track.file)
+    }));
 
-    if (coverFile) {
-      if (status) status.textContent = "Uploading cover...";
-      const blob = await window.archiveUploadBlob(
-        `releases/${releaseKey}/cover-${safeUploadName(coverFile.name)}`,
-        coverFile,
-        uploadCode
-      );
-      coverUrl = blob.url;
+    if (!displayTracks.length) displayTracks.push({ number: 1, title: "No audio files", locked: true });
+
+    const release = {
+      id,
+      title,
+      kind,
+      releaseYear,
+      releaseDate: releaseYear,
+      cover: coverFile ? URL.createObjectURL(coverFile) : defaultCover,
+      accent: "#f7f7f2",
+      tracks: displayTracks
+    };
+
+    if (isStandaloneApp()) {
+      await saveReleaseOnDevice({
+        id,
+        title,
+        kind,
+        releaseYear,
+        releaseDate: releaseYear,
+        coverFile: coverFile || null,
+        accent: "#f7f7f2",
+        tracks: storedTracks
+      });
     }
 
-    for (const [index, file] of audioFiles.entries()) {
-      const label = `${index + 1}/${audioFiles.length}`;
-      const blob = await window.archiveUploadBlob(
-        `releases/${releaseKey}/${String(index + 1).padStart(2, "0")}-${safeUploadName(file.name)}`,
-        file,
-        uploadCode,
-        (percentage) => {
-          if (status) status.textContent = `Uploading track ${label}: ${Math.round(percentage)}%`;
-        }
-      );
-      audio.push({ name: file.name, url: blob.url });
-    }
-
-    if (status) status.textContent = "Saving release...";
-    const response = await fetch("/api/releases", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, kind, releaseYear, uploadCode, coverUrl, audio })
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || "Upload failed");
-
-    databaseReleases = [...databaseReleases.filter((release) => release.id !== body.id), body];
+    databaseReleases = [...databaseReleases.filter((item) => item.id !== release.id), release];
     history.pushState({}, "", "/");
-    window.location.hash = `/album/${body.id}`;
+    window.location.hash = `/album/${release.id}`;
   } catch (error) {
-    if (status) status.textContent = error instanceof Error ? error.message : "Upload failed";
+    if (status) status.textContent = error instanceof Error ? error.message : "Could not save release";
   } finally {
     if (submitButton) submitButton.disabled = false;
   }
 }
 
-function safeUploadName(value) {
-  return String(value || "file")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 96) || "file";
+function cleanLocalTrackTitle(fileName, releaseTitle, kind, index) {
+  if (kind === "Single" || kind === "Unreleased") {
+    return index === 0 ? releaseTitle : `${releaseTitle} ${index + 1}`;
+  }
+  return String(fileName)
+    .replace(/\.[^.]+$/, "")
+    .replace(/^\s*\d+\s*[-_.]?\s*/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || `Track ${index + 1}`;
 }
 
 function slugify(value) {
@@ -3128,7 +3127,67 @@ function slugify(value) {
 
 async function loadDatabaseReleases() {
   databaseReleases = Array.isArray(uploadedReleases) ? uploadedReleases : [];
+  if (isStandaloneApp()) {
+    const storedReleases = await loadReleasesFromDevice();
+    databaseReleases = [...databaseReleases, ...storedReleases];
+  }
   render();
+}
+
+const deviceDbName = "archive-device-library";
+const deviceStoreName = "releases";
+
+function openDeviceDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(deviceDbName, 1);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains(deviceStoreName)) {
+        database.createObjectStore(deviceStoreName, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("Local storage is unavailable"));
+  });
+}
+
+async function saveReleaseOnDevice(release) {
+  const database = await openDeviceDatabase();
+  await new Promise((resolve, reject) => {
+    const transaction = database.transaction(deviceStoreName, "readwrite");
+    transaction.objectStore(deviceStoreName).put(release);
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error || new Error("Could not save on this device"));
+  });
+  database.close();
+}
+
+async function loadReleasesFromDevice() {
+  if (!("indexedDB" in window)) return [];
+  const database = await openDeviceDatabase();
+  const stored = await new Promise((resolve, reject) => {
+    const request = database.transaction(deviceStoreName, "readonly").objectStore(deviceStoreName).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error || new Error("Could not read device library"));
+  });
+  database.close();
+
+  return stored.map((release) => ({
+    id: release.id,
+    title: release.title,
+    kind: release.kind,
+    releaseYear: release.releaseYear,
+    releaseDate: release.releaseDate,
+    cover: release.coverFile ? URL.createObjectURL(release.coverFile) : defaultCover,
+    accent: release.accent || "#f7f7f2",
+    tracks: release.tracks.length
+      ? release.tracks.map((track) => ({
+          number: track.number,
+          title: track.title,
+          src: URL.createObjectURL(track.file)
+        }))
+      : [{ number: 1, title: "No audio files", locked: true }]
+  }));
 }
 
 function clearCountdown() {
