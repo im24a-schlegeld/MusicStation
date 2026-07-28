@@ -1,0 +1,73 @@
+/* Final mobile stability overrides. Loaded after styles.css on purpose. */
+
+body:not(.release-open)::before,
+body:not(.release-open)::after,
+body:not(.release-open) .app-shell::before,
+body:not(.release-open) .app-shell::after {
+  animation: none !important;
+  will-change: auto !important;
+}
+
+body:not(.release-open)::before,
+body:not(.release-open)::after,
+body:not(.release-open) .app-shell::before {
+  transform: translate3d(0, 0, 0) !important;
+}
+
+body:not(.release-open)::after {
+  opacity: 0.08 !important;
+  filter: blur(0.45px) contrast(1.04) !important;
+}
+
+body:not(.release-open) .app-shell::before {
+  opacity: 0.03 !important;
+}
+
+body:not(.release-open) .app-shell::after {
+  content: none !important;
+  display: none !important;
+}
+
+.album-card {
+  border-color: color-mix(in srgb, var(--accent, #ffffff) 28%, var(--line)) !important;
+  transition: box-shadow 150ms ease, border-color 150ms ease !important;
+  will-change: auto !important;
+}
+
+.album-card:hover,
+.album-card:focus-visible,
+.album-card.is-scroll-centered {
+  transform: none !important;
+  border-color: color-mix(in srgb, var(--accent, #ffffff) 72%, var(--line-strong)) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.24),
+    0 0 44px color-mix(in srgb, var(--accent, #ffffff) 46%, transparent),
+    0 0 74px color-mix(in srgb, var(--accent, #ffffff) 22%, transparent),
+    0 0 34px rgba(255, 255, 255, 0.1),
+    0 26px 70px rgba(0, 0, 0, 0.78) !important;
+  outline: 0 !important;
+}
+
+.album-card:hover .shine,
+.album-card:focus-visible .shine,
+.album-card.is-scroll-centered .shine {
+  opacity: 0.88 !important;
+  transform: translate3d(8%, 0, 0) skewX(-8deg) !important;
+}
+
+.album-card:hover .album-art,
+.album-card:focus-visible .album-art,
+.album-card.is-scroll-centered .album-art {
+  filter: none !important;
+  transform: scale(1.012) !important;
+}
+
+button,
+a,
+.album-card,
+.track-row,
+.mini-player {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}

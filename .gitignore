@@ -1,6 +1,9 @@
 .codex-server*.log
 
 node_modules/
+.next/
+.vercel/
+out/
 .vscode/
 .idea/
 android/.idea/
@@ -11,3 +14,5 @@ android/build/
 *.log
 desktop.ini
 .env
+.env.local
+.env.*.local
