@@ -71,3 +71,708 @@ a,
   -webkit-touch-callout: none;
   user-select: none;
 }
+
+/* Startup logo now lands on the header logo instead of exploding outward. */
+.app-launch-screen {
+  --launch-target-x: 0px;
+  --launch-target-y: -34vh;
+  --launch-target-scale: 0.72;
+  background-color: #050505 !important;
+  background-image: none !important;
+}
+
+.app-launch-screen.is-exiting {
+  pointer-events: none !important;
+  animation: archive-launch-reveal 620ms cubic-bezier(0.58, 0, 0.18, 1) forwards !important;
+}
+
+.app-launch-screen.is-exiting .app-launch-logo {
+  animation: archive-launch-logo-home 560ms cubic-bezier(0.2, 0, 0.08, 1) forwards !important;
+}
+
+@keyframes archive-launch-logo-home {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  78% {
+    opacity: 1;
+    filter: blur(0);
+    transform:
+      translate3d(var(--launch-target-x), var(--launch-target-y), 0)
+      scale(var(--launch-target-scale));
+  }
+
+  100% {
+    opacity: 0;
+    filter: blur(1px);
+    transform:
+      translate3d(var(--launch-target-x), var(--launch-target-y), 0)
+      scale(var(--launch-target-scale));
+  }
+}
+
+@keyframes archive-launch-reveal {
+  0%,
+  72% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-launch-screen.is-exiting,
+  .app-launch-screen.is-exiting .app-launch-logo {
+    animation: archive-launch-reveal 220ms ease-out forwards !important;
+  }
+}
+
+/* Keep YouTube fullscreen truly black and edge-to-edge. */
+.video-frame,
+.video-frame iframe,
+.video-frame video {
+  background: #000 !important;
+  border: 0 !important;
+}
+
+.video-frame video {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+.video-frame:fullscreen,
+.video-frame:-webkit-full-screen,
+.video-frame iframe:fullscreen,
+.video-frame iframe:-webkit-full-screen,
+.video-frame video:fullscreen,
+.video-frame video:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #000 !important;
+  box-shadow: none !important;
+}
+
+.video-frame:fullscreen iframe,
+.video-frame:-webkit-full-screen iframe,
+.video-frame iframe:fullscreen,
+.video-frame iframe:-webkit-full-screen,
+.video-frame:fullscreen video,
+.video-frame:-webkit-full-screen video,
+.video-frame video:fullscreen,
+.video-frame video:-webkit-full-screen {
+  display: block !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: contain !important;
+}
+
+/* Final polish: smooth card focus, softer launch reveal, cleaner compact player. */
+.album-card {
+  transform: scale(1) translateZ(0) !important;
+  transition:
+    transform 240ms cubic-bezier(0.22, 0.7, 0.18, 1),
+    box-shadow 260ms ease,
+    border-color 220ms ease !important;
+  will-change: transform, box-shadow !important;
+}
+
+.album-card:hover,
+.album-card:focus-visible,
+.album-card.is-scroll-centered {
+  transform: scale(1.018) translateZ(0) !important;
+}
+
+.album-card .shine {
+  transition:
+    opacity 240ms ease,
+    transform 320ms cubic-bezier(0.2, 0.7, 0.15, 1) !important;
+}
+
+.album-card:hover .shine,
+.album-card:focus-visible .shine,
+.album-card.is-scroll-centered .shine {
+  opacity: 0.82 !important;
+}
+
+.app-launch-screen.is-exiting {
+  animation: archive-launch-reveal-soft 580ms cubic-bezier(0.33, 0, 0.12, 1) forwards !important;
+}
+
+.app-launch-screen.is-exiting .app-launch-logo {
+  animation: archive-launch-logo-home-soft 540ms cubic-bezier(0.18, 0, 0.08, 1) forwards !important;
+}
+
+@keyframes archive-launch-logo-home-soft {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  82% {
+    opacity: 1;
+    filter: blur(0);
+    transform:
+      translate3d(var(--launch-target-x), var(--launch-target-y), 0)
+      scale(var(--launch-target-scale));
+  }
+
+  100% {
+    opacity: 0;
+    filter: blur(0.6px);
+    transform:
+      translate3d(var(--launch-target-x), var(--launch-target-y), 0)
+      scale(var(--launch-target-scale));
+  }
+}
+
+@keyframes archive-launch-reveal-soft {
+  0%,
+  84% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+.player-root .player-bar:not(.queue-open) {
+  grid-template-columns: 62px minmax(0, 1fr) minmax(104px, auto) !important;
+}
+
+.player-root .player-bar:not(.queue-open) .player-cover-wrap,
+.player-root .player-bar:not(.queue-open) .player-cover-link,
+.player-root .player-bar:not(.queue-open) .player-cover,
+.player-root .player-bar:not(.queue-open) .player-cover.placeholder {
+  width: 58px !important;
+  height: 58px !important;
+}
+
+.player-root .player-progress {
+  display: grid !important;
+  grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.player-root .player-progress span {
+  display: block !important;
+  min-width: 44px !important;
+  line-height: 1 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.player-root .player-progress span:first-child {
+  text-align: right !important;
+}
+
+.player-root .player-progress span:last-child {
+  text-align: left !important;
+}
+
+.player-root .player-progress input[type="range"],
+.player-root .player-volume input[type="range"] {
+  align-self: center !important;
+  height: 18px !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+.player-root .player-progress input[type="range"]::-webkit-slider-runnable-track,
+.player-root .player-volume input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px !important;
+}
+
+.player-root .player-progress input[type="range"]::-webkit-slider-thumb,
+.player-root .player-volume input[type="range"]::-webkit-slider-thumb {
+  width: 14px !important;
+  height: 14px !important;
+  margin-top: -6px !important;
+  border-radius: 999px !important;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.62),
+    0 0 0 1px rgba(255, 255, 255, 0.58) !important;
+}
+
+.player-root .player-progress input[type="range"]::-moz-range-track,
+.player-root .player-volume input[type="range"]::-moz-range-track {
+  height: 4px !important;
+}
+
+.player-root .player-progress input[type="range"]::-moz-range-thumb,
+.player-root .player-volume input[type="range"]::-moz-range-thumb {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 999px !important;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.62),
+    0 0 0 1px rgba(255, 255, 255, 0.58) !important;
+}
+
+.player-root .player-progress input[type="range"]::-webkit-slider-thumb,
+.player-root .player-volume input[type="range"]::-webkit-slider-thumb {
+  margin-top: -7px !important;
+}
+
+@media (max-width: 760px) {
+  .album-card:hover,
+  .album-card:focus-visible,
+  .album-card.is-scroll-centered {
+    transform: scale(1.014) translateZ(0) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .player-root .player-bar:not(.queue-open) {
+    grid-template-columns: 60px minmax(0, 1fr) 104px !important;
+  }
+
+  .player-root .player-bar:not(.queue-open) .player-cover-wrap,
+  .player-root .player-bar:not(.queue-open) .player-cover-link,
+  .player-root .player-bar:not(.queue-open) .player-cover,
+  .player-root .player-bar:not(.queue-open) .player-cover.placeholder {
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  .player-root .player-bar:not(.queue-open) .player-progress {
+    grid-template-columns: 38px minmax(0, 1fr) 38px !important;
+    gap: 7px !important;
+  }
+
+  .player-root .player-bar:not(.queue-open) .player-progress span {
+    min-width: 38px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .player-root .player-bar:not(.queue-open) {
+    grid-template-columns: 56px minmax(0, 1fr) 96px !important;
+  }
+
+  .player-root .player-bar:not(.queue-open) .player-cover-wrap,
+  .player-root .player-bar:not(.queue-open) .player-cover-link,
+  .player-root .player-bar:not(.queue-open) .player-cover,
+  .player-root .player-bar:not(.queue-open) .player-cover.placeholder {
+    width: 52px !important;
+    height: 52px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .album-card,
+  .album-card .shine {
+    transition: none !important;
+  }
+
+  .album-card:hover,
+  .album-card:focus-visible,
+  .album-card.is-scroll-centered {
+    transform: none !important;
+  }
+}
+
+/* Absolute final wheel guard: all controls stay inside the circle at every size. */
+.player-root .player-controls,
+.player-root .ipod-wheel {
+  --wheel-safe-inset: max(8px, calc(var(--wheel-size, 132px) * 0.1));
+  overflow: hidden !important;
+  contain: layout paint !important;
+}
+
+.player-root .player-controls .wheel-prev,
+.player-root .player-controls [data-player-prev] {
+  position: absolute !important;
+  left: var(--wheel-safe-inset) !important;
+  right: auto !important;
+  top: 50% !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+}
+
+.player-root .player-controls .wheel-next,
+.player-root .player-controls [data-player-next] {
+  position: absolute !important;
+  right: var(--wheel-safe-inset) !important;
+  left: auto !important;
+  top: 50% !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+}
+
+.player-root .player-controls .wheel-shuffle,
+.player-root .player-controls [data-player-shuffle] {
+  position: absolute !important;
+  top: var(--wheel-safe-inset) !important;
+  bottom: auto !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+}
+
+.player-root .player-controls .wheel-repeat-control,
+.player-root .player-controls .repeat-control {
+  position: absolute !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: var(--wheel-safe-inset) !important;
+  top: auto !important;
+  transform: translateX(-50%) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  width: auto !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  margin: 0 !important;
+}
+
+.player-root .player-controls [data-player-repeat],
+.player-root .player-controls .wheel-repeat,
+.player-root .player-controls .repeat-button {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  width: 26px !important;
+  min-width: 26px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+
+.player-root .player-controls .player-toggle,
+.player-root .player-controls .wheel-toggle {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: clamp(42px, calc(var(--wheel-size, 132px) * 0.34), 56px) !important;
+  min-width: clamp(42px, calc(var(--wheel-size, 132px) * 0.34), 56px) !important;
+  height: clamp(42px, calc(var(--wheel-size, 132px) * 0.34), 56px) !important;
+  min-height: clamp(42px, calc(var(--wheel-size, 132px) * 0.34), 56px) !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+}
+
+.player-root .player-controls .repeat-mode-pill {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  width: 13px !important;
+  min-width: 13px !important;
+  height: 13px !important;
+  min-height: 13px !important;
+  margin: 0 0 0 -5px !important;
+  transform: none !important;
+}
+
+@media (max-width: 380px) {
+  .player-root .player-controls,
+  .player-root .ipod-wheel {
+    --wheel-safe-inset: max(7px, calc(var(--wheel-size, 112px) * 0.085));
+  }
+
+  .player-root .player-controls [data-player-repeat],
+  .player-root .player-controls .wheel-repeat,
+  .player-root .player-controls .repeat-button {
+    width: 24px !important;
+    min-width: 24px !important;
+  }
+}
+
+/* Real final wheel placement: override old negative mobile offsets with higher specificity. */
+body .player-root .player-bar .player-controls,
+body .player-root .player-bar .ipod-wheel,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls,
+body.player-queue-open .player-root .player-bar.queue-open .ipod-wheel {
+  --wheel-control-size: clamp(24px, calc(var(--wheel-size, 132px) * 0.22), 34px);
+  --wheel-side-inset: clamp(10px, calc(var(--wheel-size, 132px) * 0.105), 17px);
+  --wheel-pole-inset: clamp(8px, calc(var(--wheel-size, 132px) * 0.095), 15px);
+  overflow: visible !important;
+  contain: none !important;
+}
+
+body .player-root .player-bar .player-controls .wheel-prev,
+body .player-root .player-bar .player-controls [data-player-prev],
+body.player-queue-open .player-root .player-bar.queue-open .player-controls .wheel-prev,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls [data-player-prev] {
+  position: absolute !important;
+  left: var(--wheel-side-inset) !important;
+  right: auto !important;
+  top: 50% !important;
+  bottom: auto !important;
+  width: var(--wheel-control-size) !important;
+  min-width: var(--wheel-control-size) !important;
+  height: var(--wheel-control-size) !important;
+  min-height: var(--wheel-control-size) !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+}
+
+body .player-root .player-bar .player-controls .wheel-next,
+body .player-root .player-bar .player-controls [data-player-next],
+body.player-queue-open .player-root .player-bar.queue-open .player-controls .wheel-next,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls [data-player-next] {
+  position: absolute !important;
+  right: var(--wheel-side-inset) !important;
+  left: auto !important;
+  top: 50% !important;
+  bottom: auto !important;
+  width: var(--wheel-control-size) !important;
+  min-width: var(--wheel-control-size) !important;
+  height: var(--wheel-control-size) !important;
+  min-height: var(--wheel-control-size) !important;
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+}
+
+body .player-root .player-bar .player-controls .wheel-shuffle,
+body .player-root .player-bar .player-controls [data-player-shuffle],
+body.player-queue-open .player-root .player-bar.queue-open .player-controls .wheel-shuffle,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls [data-player-shuffle] {
+  position: absolute !important;
+  top: var(--wheel-pole-inset) !important;
+  bottom: auto !important;
+  left: 50% !important;
+  right: auto !important;
+  width: var(--wheel-control-size) !important;
+  min-width: var(--wheel-control-size) !important;
+  height: var(--wheel-control-size) !important;
+  min-height: var(--wheel-control-size) !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+}
+
+body .player-root .player-bar .player-controls .wheel-repeat-control,
+body .player-root .player-bar .player-controls .repeat-control,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls .wheel-repeat-control,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls .repeat-control {
+  position: absolute !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: var(--wheel-pole-inset) !important;
+  top: auto !important;
+  transform: translateX(-50%) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  width: auto !important;
+  height: var(--wheel-control-size) !important;
+  min-height: var(--wheel-control-size) !important;
+  margin: 0 !important;
+}
+
+body .player-root .player-bar .player-controls .wheel-repeat,
+body .player-root .player-bar .player-controls .repeat-button,
+body .player-root .player-bar .player-controls [data-player-repeat],
+body.player-queue-open .player-root .player-bar.queue-open .player-controls .wheel-repeat,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls .repeat-button,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls [data-player-repeat] {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  width: var(--wheel-control-size) !important;
+  min-width: var(--wheel-control-size) !important;
+  height: var(--wheel-control-size) !important;
+  min-height: var(--wheel-control-size) !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+
+body .player-root .player-bar .player-controls .player-toggle,
+body .player-root .player-bar .player-controls .wheel-toggle,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls .player-toggle,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls .wheel-toggle {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: clamp(42px, calc(var(--wheel-size, 132px) * 0.34), 56px) !important;
+  min-width: clamp(42px, calc(var(--wheel-size, 132px) * 0.34), 56px) !important;
+  height: clamp(42px, calc(var(--wheel-size, 132px) * 0.34), 56px) !important;
+  min-height: clamp(42px, calc(var(--wheel-size, 132px) * 0.34), 56px) !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+}
+
+/* Final wheel + metadata polish: keep controls in the circle and leave the queue clear. */
+.release-primary-artist {
+  margin: -4px 0 12px !important;
+  color: inherit !important;
+  opacity: 0.72 !important;
+  font-size: clamp(0.9rem, 2.5vw, 1.05rem) !important;
+  line-height: 1.15 !important;
+}
+
+[data-fit-title] {
+  display: block !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+.track-title small {
+  display: block !important;
+  grid-column: 2 !important;
+  margin-top: 2px !important;
+  color: inherit !important;
+  opacity: 0.64 !important;
+  font-size: clamp(0.66rem, 2.3vw, 0.76rem) !important;
+  line-height: 1.05 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.track-title {
+  row-gap: 2px !important;
+  column-gap: 12px !important;
+}
+
+.track-title.no-number small {
+  grid-column: 1 !important;
+}
+
+body .player-root .player-bar .player-controls,
+body .player-root .player-bar .ipod-wheel,
+body.player-queue-open .player-root .player-bar.queue-open .player-controls,
+body.player-queue-open .player-root .player-bar.queue-open .ipod-wheel {
+  --wheel-control-size: clamp(24px, calc(var(--wheel-size, 132px) * 0.22), 34px) !important;
+  --wheel-side-inset: clamp(5px, calc(var(--wheel-size, 132px) * 0.105 - 5px), 12px) !important;
+  --wheel-pole-inset: clamp(4px, calc(var(--wheel-size, 132px) * 0.095 - 5px), 10px) !important;
+  overflow: visible !important;
+  contain: none !important;
+}
+
+@media (max-width: 760px) {
+  body.player-queue-open .player-root .player-bar.queue-open .queue-panel,
+  .player-root .player-bar.queue-open .queue-panel {
+    margin-top: 8px !important;
+    padding-top: 18px !important;
+  }
+}
+
+/* Player alignment pass: extended timeline follows the compact timeline style. */
+.player-root .player-bar.queue-open .player-progress,
+body.player-queue-open .player-root .player-bar.queue-open .player-progress {
+  display: grid !important;
+  grid-template-columns: 38px minmax(0, 1fr) 38px !important;
+  align-items: center !important;
+  justify-items: stretch !important;
+  gap: 8px !important;
+  width: min(100%, 860px) !important;
+  max-width: none !important;
+  margin-inline: auto !important;
+}
+
+.player-root .player-bar.queue-open .player-progress span,
+body.player-queue-open .player-root .player-bar.queue-open .player-progress span {
+  display: block !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.player-root .player-bar.queue-open .player-progress input[type="range"],
+body.player-queue-open .player-root .player-bar.queue-open .player-progress input[type="range"] {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+.player-root .player-bar.queue-open .player-main,
+body.player-queue-open .player-root .player-bar.queue-open .player-main,
+.player-root .player-bar.queue-open .player-meta,
+body.player-queue-open .player-root .player-bar.queue-open .player-meta {
+  align-items: flex-start !important;
+  justify-items: start !important;
+  text-align: left !important;
+}
+
+.player-root .player-bar.queue-open .player-meta strong,
+.player-root .player-bar.queue-open .player-meta span,
+body.player-queue-open .player-root .player-bar.queue-open .player-meta strong,
+body.player-queue-open .player-root .player-bar.queue-open .player-meta span {
+  text-align: left !important;
+  margin-inline: 0 !important;
+}
+
+.player-root .player-bar:not(.queue-open) .player-cover-wrap,
+.player-root .player-bar:not(.queue-open) .player-cover-link,
+.player-root .player-bar:not(.queue-open) .player-cover,
+.player-root .player-bar:not(.queue-open) .player-cover.placeholder {
+  width: clamp(60px, 12vw, 78px) !important;
+  min-width: clamp(60px, 12vw, 78px) !important;
+  height: clamp(60px, 12vw, 78px) !important;
+  min-height: clamp(60px, 12vw, 78px) !important;
+}
+
+@media (max-width: 760px) {
+  .player-root .player-bar.queue-open .player-progress,
+  body.player-queue-open .player-root .player-bar.queue-open .player-progress {
+    grid-template-columns: 34px minmax(0, 1fr) 34px !important;
+    gap: 6px !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin-inline: auto !important;
+  }
+
+  .player-root .player-bar.queue-open .player-progress span,
+  body.player-queue-open .player-root .player-bar.queue-open .player-progress span {
+    width: 34px !important;
+    min-width: 34px !important;
+    font-size: 0.66rem !important;
+    text-align: center !important;
+  }
+
+  .player-root .player-bar:not(.queue-open) .player-cover-wrap,
+  .player-root .player-bar:not(.queue-open) .player-cover-link,
+  .player-root .player-bar:not(.queue-open) .player-cover,
+  .player-root .player-bar:not(.queue-open) .player-cover.placeholder {
+    width: clamp(60px, 16vw, 72px) !important;
+    min-width: clamp(60px, 16vw, 72px) !important;
+    height: clamp(60px, 16vw, 72px) !important;
+    min-height: clamp(60px, 16vw, 72px) !important;
+  }
+
+  .player-root .player-bar.queue-open .player-main,
+  body.player-queue-open .player-root .player-bar.queue-open .player-main,
+  .player-root .player-bar.queue-open .player-meta,
+  body.player-queue-open .player-root .player-bar.queue-open .player-meta {
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+}

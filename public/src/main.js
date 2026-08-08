@@ -1,7 +1,7 @@
 import { albums as bundledAlbums } from "./albums.js";
 import { uploadedReleases as bundledUploadedReleases } from "./uploadedReleases.js";
 
-// This clean copy intentionally starts without bundled music.
+// The web/PWA edition intentionally starts without bundled music.
 const albums = [];
 const uploadedReleases = [];
 
@@ -132,6 +132,7 @@ async function finishStartupLoading(dataReady) {
   const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   const removalDelay = reduceMotion ? 240 : 620;
 
+  positionLaunchLogoExit();
   launchScreen.classList.add("is-exiting");
   launchScreen.setAttribute("aria-hidden", "true");
 
@@ -139,6 +140,26 @@ async function finishStartupLoading(dataReady) {
     launchScreen.remove();
     document.body.classList.remove("launch-active");
   }, removalDelay);
+}
+
+function positionLaunchLogoExit() {
+  const logo = launchScreen?.querySelector(".app-launch-logo");
+  const headerLogo = document.querySelector(".library-header .archive-gif-logo");
+  if (!logo || !headerLogo) return;
+
+  const from = logo.getBoundingClientRect();
+  const to = headerLogo.getBoundingClientRect();
+  if (!from.width || !from.height || !to.width || !to.height) return;
+
+  const fromCenterX = from.left + from.width / 2;
+  const fromCenterY = from.top + from.height / 2;
+  const toCenterX = to.left + to.width / 2;
+  const toCenterY = to.top + to.height / 2;
+  const scale = Math.max(0.05, Math.min(4, to.width / from.width));
+
+  launchScreen.style.setProperty("--launch-target-x", `${toCenterX - fromCenterX}px`);
+  launchScreen.style.setProperty("--launch-target-y", `${toCenterY - fromCenterY}px`);
+  launchScreen.style.setProperty("--launch-target-scale", String(scale));
 }
 
 const favoriteStorageKey = "x-archive-favorites";
@@ -206,33 +227,7 @@ function savePlaylists() {
 }
 
 const defaultCover = "/assets/covers/asterisk.png";
-
-const musicVideos = [
-  { title: "Gold Medal ft International Jefe & lil Unky", youtubeId: "QrYmk0pLBWM", group: "Music Videos" },
-  { title: "Yale", youtubeId: "kpuy4BEU644", group: "Music Videos" },
-  { title: "High as Sh!T", youtubeId: "JyoJ4AIkY7g", group: "Music Videos" },
-  { title: "Butterfly", youtubeId: "RwqtG6dMi2E", group: "Music Videos" },
-  { title: "Rock N Roll", youtubeId: "yxP4pvEQVos", group: "Music Videos" },
-  { title: "Change", youtubeId: "wXw2bpR5_a8", group: "Music Videos" },
-  { title: "Run + Ran", youtubeId: "gfRn6IvHL0M", group: "Music Videos" },
-  { title: "The End", youtubeId: "Mk1Df4VDdrI", group: "Music Videos" },
-  { title: "Go", youtubeId: "lIoYAptvFVc", group: "Music Videos" },
-  { title: "MDMA ft. Destroy Lonely", youtubeId: "Gbqa9n1XOes", group: "Music Videos" },
-  { title: "Freestyle 2", youtubeId: "jao-W5tJkYo", group: "Music Videos" },
-  { title: "Jennifer's Body", youtubeId: "CSMiPngo4uE", group: "Music Videos" },
-  { title: "Fighting My Demons - Lyrical Lemonade", youtubeId: "YKkMR2l05Rs", group: "Music Videos" },
-  { title: "Succubus", youtubeId: "qCUhSPcoCcU", group: "Music Videos" },
-  { title: "overseas", youtubeId: "80M6sAU9DY4", group: "Music Videos" },
-  { title: "delusional", youtubeId: "gpbQ4A4tQuU", group: "Music Videos" },
-  { title: "Money Spread", youtubeId: "bYIODnKGNdg", group: "Music Videos" },
-  { title: "Lord Of Chaos", youtubeId: "vkhsaxlCSmc", group: "Music Videos" },
-  { title: "catastrophe", youtubeId: "j2g-KI9mukI", group: "Music Videos" },
-  { title: "margiela", youtubeId: "Ve5jWpIu6Ic", group: "Music Videos" },
-  { title: "SoFaygo - Hell Yeah ft. Ken Carson", youtubeId: "zZ6RdhGj4dI", group: "Features / nicht auf seinem Kanal" },
-  { title: "070 Shake - Natural Habitat ft. Ken Carson", youtubeId: "yB5bM0WFN8o", group: "Features / nicht auf seinem Kanal" },
-  { title: "Southside, Destroy Lonely - President ft. Ken Carson", youtubeId: "fkTgbsz1aUo", group: "Features / nicht auf seinem Kanal" },
-  { title: "wedidit ft. Playboi Carti", youtubeId: "xHSeZUAq2-s", group: "Music Videos" }
-];
+const musicVideos = [];
 
 const state = {
   filter: "all",
@@ -248,7 +243,7 @@ const playback = {
   current: null,
   queue: [],
   repeatQueue: [],
-  repeatMode: "off",
+  repeatMode: "queue",
   history: [],
   isPlaying: false,
   ignorePause: false,
@@ -643,7 +638,12 @@ function releaseMatchesQuery(album, query) {
   return (
     !query ||
     normalizeText(album.title).includes(query) ||
-    album.tracks.some((track) => normalizeText(track.title).includes(query))
+    normalizeText(album.primaryArtist || album.artist).includes(query) ||
+    album.tracks.some(
+      (track) =>
+        normalizeText(track.title).includes(query) ||
+        normalizeText(track.primaryArtist || track.artist).includes(query)
+    )
   );
 }
 
@@ -713,11 +713,15 @@ function matchingSongs() {
 function trackMatchRank(album, track, query) {
   const trackTitle = normalizeText(track.title);
   const albumTitle = normalizeText(album.title);
+  const trackArtist = normalizeText(track.primaryArtist || track.artist);
+  const albumArtist = normalizeText(album.primaryArtist || album.artist);
   if (trackTitle === query) return 0;
   if (trackTitle.startsWith(query)) return 1;
   if (trackTitle.includes(query)) return 2;
   if (albumTitle.startsWith(query)) return 3;
   if (albumTitle.includes(query)) return 4;
+  if (trackArtist.startsWith(query) || albumArtist.startsWith(query)) return 5;
+  if (trackArtist.includes(query) || albumArtist.includes(query)) return 6;
   return Infinity;
 }
 
@@ -730,6 +734,8 @@ function playableTrack(album, track) {
     albumKind: album.kind,
     releaseYear: album.releaseYear,
     releaseDate: album.releaseDate,
+    artist: track.artist || album.artist || "Ken Carson",
+    primaryArtist: track.primaryArtist || album.primaryArtist || track.artist || album.artist || "",
     cover: album.cover || defaultCover,
     accent: album.accent
   };
@@ -737,8 +743,27 @@ function playableTrack(album, track) {
   return expanded;
 }
 
+function trackPrimaryArtist(track) {
+  const artist = String(track?.primaryArtist || track?.artist || "").trim();
+  if (!artist || normalizeText(artist) === "ken carson") return "";
+  return artist;
+}
+
+function trackNativeArtist(track) {
+  return String(track?.primaryArtist || track?.artist || "Ken Carson").trim() || "Ken Carson";
+}
+
+function releasePrimaryArtist(album) {
+  const artist = String(album?.primaryArtist || album?.artist || "").trim();
+  if (!artist || normalizeText(artist) === "ken carson") return "";
+  return artist;
+}
+
 function trackProjectSubtitle(track) {
   if (!track) return "";
+
+  const artist = trackPrimaryArtist(track);
+  if (artist) return artist;
 
   const isSingle = normalizeText(track.albumKind) === "single";
   const sameTitle = normalizeText(track.title) === normalizeText(track.albumTitle);
@@ -933,7 +958,7 @@ async function updateNativeMediaNotification(force = false) {
     await archiveMedia.update({
       title: track.title || "Unknown track",
       album: track.albumTitle || "Archive",
-      artist: "Ken Carson",
+      artist: trackNativeArtist(track),
       cover: track.cover || defaultCover,
       isPlaying: Boolean(playback.isPlaying),
       isFavorite: isFavoriteTrack(track),
@@ -961,7 +986,8 @@ function nativeTrackPayload(track) {
     albumKind: track.albumKind || "",
     releaseYear: track.releaseYear || "",
     releaseDate: track.releaseDate || "",
-    artist: "Ken Carson",
+    artist: trackNativeArtist(track),
+    primaryArtist: track.primaryArtist || track.artist || "",
     src: track.src || "",
     cover: track.cover || defaultCover,
     accent: track.accent || "",
@@ -995,6 +1021,7 @@ function restoreTrackFromPayload(payload) {
     releaseYear: payload.releaseYear || "",
     releaseDate: payload.releaseDate || "",
     artist: payload.artist || "Ken Carson",
+    primaryArtist: payload.primaryArtist || payload.artist || "",
     src: payload.src,
     cover: payload.cover || defaultCover,
     accent: payload.accent || "",
@@ -1005,6 +1032,10 @@ function restoreTrackFromPayload(payload) {
 function restoreTracksFromPayload(payloadTracks) {
   if (!Array.isArray(payloadTracks)) return [];
   return payloadTracks.map(restoreTrackFromPayload).filter(Boolean);
+}
+
+function normalizeRepeatMode(mode) {
+  return mode === "track" ? "track" : "queue";
 }
 
 function persistPlaybackState() {
@@ -1033,18 +1064,21 @@ function restorePlaybackState() {
     const saved = JSON.parse(localStorage.getItem(playbackStorageKey) || "null");
     if (!saved || typeof saved !== "object") return false;
 
-    const current = restoreTrackFromPayload(saved.current);
+    let current = restoreTrackFromPayload(saved.current);
     const queue = restoreTracksFromPayload(saved.queue);
     const history = restoreTracksFromPayload(saved.history);
     const repeatQueue = restoreTracksFromPayload(saved.repeatQueue);
 
     if (!current && !queue.length && !history.length) return false;
+    if (!current && queue.length) current = queue.shift();
+    if (!current && history.length) current = history.pop();
+    if (!current) return false;
 
     playback.current = current;
     playback.queue = queue;
     playback.history = history;
     playback.repeatQueue = repeatQueue.length ? repeatQueue : [current, ...queue].filter(Boolean);
-    playback.repeatMode = ["off", "track", "queue"].includes(saved.repeatMode) ? saved.repeatMode : "off";
+    playback.repeatMode = normalizeRepeatMode(saved.repeatMode);
     playback.volume = Math.max(0, Math.min(1, Number(saved.volume ?? 1)));
     playback.audio.volume = playback.volume;
     playback.duration = Math.max(0, Number(saved.duration || 0));
@@ -1073,7 +1107,7 @@ function applyNativeQueueState(state = {}) {
   playback.current = nativeTracks[currentIndex] || null;
   playback.queue = nativeTracks.slice(currentIndex + 1);
   setRepeatQueue(nativeTracks);
-  return true;
+  return Boolean(playback.current);
 }
 
 async function hydrateNativePlaybackState() {
@@ -1135,7 +1169,7 @@ function updateUiFromNativeState(state = {}) {
   if (typeof state.position === "number") playback.time = state.position;
   if (typeof state.duration === "number" && state.duration > 0) playback.duration = state.duration;
   if (typeof state.isPlaying === "boolean") playback.isPlaying = state.isPlaying;
-  if (typeof state.repeatMode === "string") playback.repeatMode = state.repeatMode;
+  if (typeof state.repeatMode === "string") playback.repeatMode = normalizeRepeatMode(state.repeatMode);
 
   if (state.key && playback.current?.key !== state.key) {
     const track = trackLookup.get(state.key);
@@ -1499,7 +1533,7 @@ function updateMediaSession(forceNative = false) {
   if ("mediaSession" in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.title || "Unknown track",
-      artist: "Ken Carson",
+      artist: trackNativeArtist(track),
       album: track.albumTitle || "Archive",
       artwork: [
         {
@@ -1755,6 +1789,7 @@ function renderLibrary() {
     </main>
   `);
 
+  scheduleFitReleaseTitles();
   scheduleCenteredReleaseFocusUpdate();
 }
 
@@ -1956,7 +1991,7 @@ function albumCard(album) {
           ${album.releaseYear ? `<span class="card-year">${escapeHtml(album.releaseYear)}</span>` : ""}
         </div>
         <div class="card-track-line">${hasTrackCount ? pluralTracks(album.tracks.length) : ""}</div>
-        <h2>${escapeHtml(album.title)}</h2>
+        <h2 data-fit-title data-fit-edge=".album-card" data-fit-min="4.8">${escapeHtml(album.title)}</h2>
       </div>
     </a>
   `;
@@ -2003,6 +2038,7 @@ function songResultsMarkup(songs) {
 function songResultRow(track) {
   const isCurrent = playback.current?.key === track.key;
   const isPlaying = isCurrent && playback.isPlaying;
+  const subtitle = trackProjectSubtitle(track) || track.albumTitle;
   return `
     <div class="song-result${isCurrent ? " is-current" : ""}${isPlaying ? " is-playing" : ""}" data-track-key="${escapeHtml(track.key)}">
       <div class="track-play-cell">
@@ -2013,7 +2049,7 @@ function songResultRow(track) {
       </span>
       <div class="song-result-copy">
         <strong>${escapeHtml(track.title)}</strong>
-        <span>${escapeHtml(track.albumTitle)}</span>
+        <span>${escapeHtml(subtitle)}</span>
       </div>
       <div class="track-actions">
         ${trackVideoButton(track)}
@@ -2030,6 +2066,7 @@ function renderAlbum(album) {
   const visibleTracks = album.tracks.map((track) => (track.locked ? track : playableTrack(album, track)));
   const playableCount = visibleTracks.filter((track) => !track.locked).length;
   const kindLabel = releaseKindLabel(album.kind);
+  const primaryArtist = releasePrimaryArtist(album);
   const showTrackNumbers = ["album", "ep"].includes(normalizeText(album.kind));
   const showCount = showReleaseTrackCount(album);
   const showActions = showReleasePlaybackActions(album);
@@ -2050,7 +2087,8 @@ function renderAlbum(album) {
         ${heroCoverMarkup(album)}
         <div class="hero-copy">
           <p class="eyebrow">${escapeHtml(kindLabel)} ${escapeHtml(album.releaseYear || "")}</p>
-          <h1>${escapeHtml(album.title)}</h1>
+          <h1 data-fit-title data-fit-edge=".hero-copy" data-fit-min="8">${escapeHtml(album.title)}</h1>
+          ${primaryArtist ? `<p class="release-primary-artist">${escapeHtml(primaryArtist)}</p>` : ""}
           ${
             showActions
               ? `
@@ -2093,26 +2131,63 @@ function renderAlbum(album) {
   `);
 
   startCountdown();
-  requestAnimationFrame(fitReleaseTitle);
+  scheduleFitReleaseTitles();
 }
 
-function fitReleaseTitle() {
-  const title = app.querySelector(".album-page .hero-copy h1");
+function fitSingleLineTitle(title) {
   if (!title) return;
 
-  title.style.fontSize = "";
+  title.style.removeProperty("font-size");
+  title.style.removeProperty("letter-spacing");
+  title.style.setProperty("white-space", "nowrap", "important");
+  title.style.removeProperty("max-width");
 
   const computed = window.getComputedStyle(title);
   const initialSize = Number.parseFloat(computed.fontSize);
   if (!Number.isFinite(initialSize) || initialSize <= 0) return;
 
-  const minimumSize = Math.max(24, initialSize * 0.58);
+  const edgeSelector = title.dataset.fitEdge || "";
+  const edge = edgeSelector ? title.closest(edgeSelector) : title.parentElement;
+  if (edge) {
+    const titleRect = title.getBoundingClientRect();
+    const edgeRect = edge.getBoundingClientRect();
+    const edgeStyle = window.getComputedStyle(edge);
+    const fallbackLeftGap = Number.parseFloat(edgeStyle.paddingLeft || "0") || 0;
+    const leftGap = Math.max(0, titleRect.left - edgeRect.left, fallbackLeftGap);
+    const availableWidth = Math.max(40, edgeRect.right - titleRect.left - leftGap);
+    title.style.setProperty("max-width", `${availableWidth}px`, "important");
+  }
+
+  const configuredMin = Number.parseFloat(title.dataset.fitMin || "");
+  const minimumSize = Number.isFinite(configuredMin) && configuredMin > 0 ? configuredMin : Math.max(10, initialSize * 0.36);
   let size = initialSize;
 
-  while (size > minimumSize && title.scrollWidth > title.clientWidth + 1) {
-    size -= 1;
-    title.style.fontSize = `${size}px`;
+  const shrinkToFit = (floor = minimumSize) => {
+    while (size > floor && title.scrollWidth > title.clientWidth + 1) {
+      size -= size > 24 ? 1 : 0.5;
+      title.style.setProperty("font-size", `${size}px`, "important");
+    }
+  };
+
+  shrinkToFit();
+
+  if (title.scrollWidth > title.clientWidth + 1) {
+    title.style.setProperty("letter-spacing", "0", "important");
+    shrinkToFit(3.5);
   }
+}
+
+function fitReleaseTitles() {
+  app.querySelectorAll("[data-fit-title]").forEach(fitSingleLineTitle);
+}
+
+function scheduleFitReleaseTitles() {
+  requestAnimationFrame(() => {
+    fitReleaseTitles();
+    requestAnimationFrame(fitReleaseTitles);
+    window.setTimeout(fitReleaseTitles, 90);
+    window.setTimeout(fitReleaseTitles, 260);
+  });
 }
 
 function renderAddPage() {
@@ -2179,7 +2254,6 @@ function renderVideosPage() {
   document.title = "Music Videos | archive";
   clearCountdown();
   clearReleaseBackground();
-  const groups = ["Music Videos", "Features / nicht auf seinem Kanal"];
   const activeVideoSlug = getRouteVideoSlug();
 
   renderShell(`
@@ -2197,7 +2271,11 @@ function renderVideosPage() {
         <h1>Music Videos</h1>
       </section>
 
-      ${groups.map((group) => videoGroupMarkup(group, activeVideoSlug)).join("")}
+      <section class="video-section" aria-label="Music Videos">
+        <div class="video-grid">
+          ${musicVideos.map((video) => videoCard(video, activeVideoSlug)).join("")}
+        </div>
+      </section>
     </main>
   `);
 }
@@ -2271,36 +2349,16 @@ function favoriteRowMarkup(track, index) {
   `;
 }
 
-function videoGroupMarkup(group, activeVideoSlug = "") {
-  const videos = musicVideos.filter((video) => video.group === group);
-  return `
-    <section class="video-section" aria-label="${escapeHtml(group)}">
-      <div class="section-heading">
-        <h2>${escapeHtml(group)}</h2>
-        <span>${videos.length} videos</span>
-      </div>
-      <div class="video-grid">
-        ${videos.map((video) => videoCard(video, activeVideoSlug)).join("")}
-      </div>
-    </section>
-  `;
-}
-
 function videoCard(video, activeVideoSlug = "") {
-  const embedUrl = `https://www.youtube-nocookie.com/embed/${video.youtubeId}`;
   const slug = videoSlug(video);
   const isTargeted = slug === activeVideoSlug;
+  const poster = video.poster || videoPoster(video.youtubeId);
   return `
     <article class="video-card${isTargeted ? " is-targeted" : ""}" id="video-${escapeHtml(slug)}" data-video-slug="${escapeHtml(slug)}" tabindex="-1">
       <div class="video-frame">
-        <iframe
-          src="${escapeHtml(embedUrl)}"
-          title="${escapeHtml(video.title)}"
-          loading="lazy"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allowfullscreen
-        ></iframe>
+        <video controls preload="metadata" playsinline webkit-playsinline poster="${escapeHtml(poster)}" title="${escapeHtml(video.title)}">
+          <source src="${escapeHtml(video.src)}" type="video/mp4" />
+        </video>
       </div>
       <h3>${escapeHtml(video.title)}</h3>
     </article>
@@ -2327,6 +2385,7 @@ function trackRow(track, showTrackNumbers = true) {
   const isCurrent = playback.current?.key === track.key;
   const isPlaying = isCurrent && playback.isPlaying;
   const videoAction = trackVideoButton(track);
+  const subtitle = trackProjectSubtitle(track);
   return `
     <div class="track-row${videoAction ? " has-video-action" : ""}${isCurrent ? " is-current" : ""}${isPlaying ? " is-playing" : ""}" data-track-key="${escapeHtml(track.key)}">
       <div class="track-play-cell">
@@ -2335,6 +2394,7 @@ function trackRow(track, showTrackNumbers = true) {
       <div class="${titleClass}">
         ${numberMarkup}
         <strong>${escapeHtml(track.title)}</strong>
+        ${subtitle ? `<small>${escapeHtml(subtitle)}</small>` : ""}
       </div>
       ${videoAction ? `<div class="track-actions track-row-actions">${videoAction}</div>` : ""}
     </div>
@@ -2408,12 +2468,7 @@ function renderPlayer() {
   const subtitle = trackProjectSubtitle(current);
   const queueOpen = playback.queueOpen;
   document.body.classList.toggle("player-queue-open", queueOpen);
-  const repeatModeText =
-    playback.repeatMode === "track"
-      ? "1"
-      : playback.repeatMode === "queue"
-        ? "Q"
-        : "";
+  const repeatModeText = playback.repeatMode === "track" ? "1" : "";
 
   playerRoot.innerHTML = `
     <section class="player-bar${current ? "" : " is-empty"}${queueOpen ? " queue-open" : ""}" aria-label="Now playing">
@@ -2503,7 +2558,7 @@ function renderPlayer() {
         </button>
 
         <div class="repeat-control wheel-repeat-control">
-          <button class="icon-button wheel-repeat repeat-button" type="button" data-player-repeat data-repeat-mode="${escapeHtml(playback.repeatMode)}" aria-label="${escapeHtml(repeatLabel)}" title="${escapeHtml(repeatLabel)}" aria-pressed="${playback.repeatMode !== "off"}">
+          <button class="icon-button wheel-repeat repeat-button" type="button" data-player-repeat data-repeat-mode="${escapeHtml(playback.repeatMode)}" aria-label="${escapeHtml(repeatLabel)}" title="${escapeHtml(repeatLabel)}" aria-pressed="true">
             <span aria-hidden="true">${icons.repeat}</span>
           </button>
           ${repeatModeText ? `<span class="repeat-mode-pill" aria-hidden="true">${repeatModeText}</span>` : ""}
@@ -2917,9 +2972,9 @@ function appendToRepeatQueue(tracks) {
 }
 
 function cycleRepeatMode() {
-  const modes = ["off", "track", "queue"];
+  const modes = ["queue", "track"];
   const currentIndex = modes.indexOf(playback.repeatMode);
-  playback.repeatMode = modes[(currentIndex + 1) % modes.length];
+  playback.repeatMode = modes[((currentIndex >= 0 ? currentIndex : 0) + 1) % modes.length];
   if (playback.repeatMode === "queue" && !playback.repeatQueue.length && playback.current) {
     setRepeatQueue([playback.current, ...playback.queue]);
   }
@@ -2929,8 +2984,7 @@ function cycleRepeatMode() {
 
 function getRepeatLabel() {
   if (playback.repeatMode === "track") return "Repeat current song";
-  if (playback.repeatMode === "queue") return "Repeat queue";
-  return "Repeat off";
+  return "Repeat queue";
 }
 
 function restartCurrentTrack() {
@@ -3494,6 +3548,21 @@ app.addEventListener("change", (event) => {
   }
 });
 
+app.addEventListener(
+  "play",
+  (event) => {
+    const activeVideo = event.target.closest?.(".video-frame video");
+    if (!activeVideo) return;
+
+    app.querySelectorAll(".video-frame video").forEach((video) => {
+      if (video !== activeVideo && !video.paused) {
+        video.pause();
+      }
+    });
+  },
+  true
+);
+
 app.addEventListener("submit", (event) => {
   const form = event.target.closest("[data-add-form]");
   if (!form) return;
@@ -3719,11 +3788,14 @@ window.addEventListener("hashchange", render);
 window.addEventListener("popstate", render);
 window.addEventListener("scroll", scheduleCenteredReleaseFocusUpdate, { passive: true });
 window.addEventListener("resize", () => {
-  if (isAlbumRoute()) requestAnimationFrame(fitReleaseTitle);
+  scheduleFitReleaseTitles();
   scheduleCenteredReleaseFocusUpdate();
 });
 restorePlaybackState();
 render();
+if (document.fonts?.ready) {
+  document.fonts.ready.then(() => scheduleFitReleaseTitles()).catch(() => {});
+}
 const startupDataReady = loadDatabaseReleases();
 void hydrateNativePlaybackState();
 void consumePendingNativeAction();
