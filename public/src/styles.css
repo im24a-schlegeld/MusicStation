@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   color-scheme: dark;
   --bg: #050505;
   --panel: rgba(10, 10, 10, 0.84);
@@ -7,7 +7,7 @@
   --muted: #aaa9a3;
   --line: rgba(255, 255, 255, 0.28);
   --line-strong: rgba(255, 255, 255, 0.58);
-  font-family: "Pirata One", serif;
+  font-family: "Audiowide", sans-serif;
 }
 
 .burger-menu button {
@@ -190,7 +190,7 @@ p {
 }
 
 h1 {
-  font-family: "New Rocker", serif;
+  font-family: "Michroma", sans-serif;
   font-weight: 400;
   text-transform: uppercase;
   margin-bottom: 0;
@@ -200,7 +200,7 @@ h1 {
 }
 
 .logo {
-  font-family: "Pirata One", serif;
+  font-family: "Audiowide", sans-serif;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -226,7 +226,7 @@ h2,
 .section-heading h2,
 .countdown-panel h2,
 .video-card h3 {
-  font-family: "New Rocker", serif;
+  font-family: "Michroma", sans-serif;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1474,7 +1474,7 @@ body.release-open .track-row.is-playing {
   --opium-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
   --opium-glow: 0 0 0 1px rgba(224, 0, 37, 0.26), 0 0 34px rgba(157, 0, 21, 0.18);
 
-  font-family: "Cinzel", "New Rocker", serif;
+  font-family: "Cinzel", "Michroma", sans-serif;
 }
 
 *::selection {
@@ -1587,7 +1587,7 @@ h1,
 .section-heading h2,
 .countdown-panel h2,
 .video-card h3 {
-  font-family: "Pirata One", "New Rocker", serif !important;
+  font-family: "Audiowide", "Michroma", sans-serif !important;
   letter-spacing: 0.055em !important;
   text-shadow: 0 16px 36px rgba(0, 0, 0, 0.78) !important;
 }
@@ -1676,14 +1676,14 @@ h1 {
 .album-hero::after,
 .videos-hero::after,
 .add-hero::after {
-  content: "†" !important;
+  content: "â€ " !important;
   display: block !important;
   position: absolute;
   right: 18px;
   top: 10px;
   z-index: 1;
   color: rgba(255, 255, 255, 0.08);
-  font-family: "Pirata One", serif;
+  font-family: "Audiowide", sans-serif;
   font-size: clamp(3.2rem, 7vw, 7.5rem);
   line-height: 1;
   pointer-events: none;
@@ -2021,7 +2021,7 @@ h1 {
   --muted: #aaa9a3;
   --line: rgba(255, 255, 255, 0.28);
   --line-strong: rgba(255, 255, 255, 0.58);
-  font-family: "Pirata One", serif;
+  font-family: "Audiowide", sans-serif;
 }
 
 * {
@@ -2153,7 +2153,7 @@ p {
 }
 
 h1 {
-  font-family: "New Rocker", serif;
+  font-family: "Michroma", sans-serif;
   font-weight: 400;
   text-transform: uppercase;
   margin-bottom: 0;
@@ -2163,7 +2163,7 @@ h1 {
 }
 
 .logo {
-  font-family: "Pirata One", serif;
+  font-family: "Audiowide", sans-serif;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -2189,7 +2189,7 @@ h2,
 .section-heading h2,
 .countdown-panel h2,
 .video-card h3 {
-  font-family: "New Rocker", serif;
+  font-family: "Michroma", sans-serif;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -3444,7 +3444,7 @@ body.release-open .track-row.is-playing {
     0 0 0 1px color-mix(in srgb, var(--block-accent) 22%, transparent),
     0 0 34px color-mix(in srgb, var(--block-accent) 16%, transparent);
 
-  font-family: "Cinzel", "New Rocker", serif;
+  font-family: "Cinzel", "Michroma", sans-serif;
 }
 
 *::selection {
@@ -3556,7 +3556,7 @@ h1,
 .section-heading h2,
 .countdown-panel h2,
 .video-card h3 {
-  font-family: "Pirata One", "New Rocker", serif !important;
+  font-family: "Audiowide", "Michroma", sans-serif !important;
   letter-spacing: 0.055em !important;
   text-shadow: 0 16px 36px rgba(0, 0, 0, 0.78) !important;
 }
@@ -3656,14 +3656,14 @@ h1 {
 .album-hero::after,
 .videos-hero::after,
 .add-hero::after {
-  content: "†" !important;
+  content: "â€ " !important;
   display: block !important;
   position: absolute;
   right: 18px;
   top: 10px;
   z-index: 1;
   color: color-mix(in srgb, var(--block-accent) 16%, transparent);
-  font-family: "Pirata One", serif;
+  font-family: "Audiowide", sans-serif;
   font-size: clamp(3.2rem, 7vw, 7.5rem);
   line-height: 1;
   pointer-events: none;
@@ -8959,7 +8959,7 @@ label,
 .upload-status,
 .burger-menu a,
 .player-root {
-  font-family: "Pirata One", serif !important;
+  font-family: "Audiowide", sans-serif !important;
 }
 
 h1,
@@ -8972,7 +8972,7 @@ h3,
 .section-heading h2,
 .timeline-copy strong,
 .card-copy h2 {
-  font-family: "New Rocker", serif !important;
+  font-family: "Michroma", sans-serif !important;
 }
 
 select,
@@ -13031,3 +13031,4 @@ body:not(.release-open) .app-shell::after {
     transform: none !important;
   }
 }
+
