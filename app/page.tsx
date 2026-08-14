@@ -7,7 +7,7 @@ export default function HomePage() {
         <img className="app-launch-logo" src="/assets/brand-logo.png" alt="" draggable={false} />
       </div>
       <div id="app" />
-      <Script type="module" src="/src/main.js" strategy="afterInteractive" />
+      <Script type="module" src="/src/main.js?v=20260814-1735" strategy="afterInteractive" />
     </>
   );
 }

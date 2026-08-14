@@ -1,7 +1,4 @@
-import { albums as bundledAlbums } from "./albums.js";
-import { uploadedReleases as bundledUploadedReleases } from "./uploadedReleases.js";
-
-// The web/PWA edition intentionally starts without bundled music.
+﻿// Generic local-music edition: start with no bundled catalog.
 const albums = [];
 const uploadedReleases = [];
 
@@ -14,15 +11,15 @@ playerRoot.className = "player-root";
 document.body.append(playerRoot);
 
 const icons = {
-  play: "▶",
-  pause: "Ⅱ",
-  previous: "‹",
-  next: "›",
-  repeat: "↻",
-  shuffle: "⤨",
-  up: "↑",
-  down: "↓",
-  remove: "×"
+  play: "â–¶",
+  pause: "â…¡",
+  previous: "â€¹",
+  next: "â€º",
+  repeat: "â†»",
+  shuffle: "â¤¨",
+  up: "â†‘",
+  down: "â†“",
+  remove: "Ã—"
 };
 
 Object.assign(icons, {
@@ -56,8 +53,13 @@ Object.assign(icons, {
   favorite: svgIcon(`<path d="M12 19.5 10.8 18C6.4 14 4 11.8 4 8.8A4 4 0 0 1 8.1 4.7c1.4 0 2.8.7 3.9 1.8a5.2 5.2 0 0 1 3.9-1.8A4 4 0 0 1 20 8.8c0 3-2.4 5.2-6.8 9.2z" fill="none" stroke="currentColor" stroke-width="1.8" />`),
   favoriteFilled: svgIcon(`<path d="M12 20 10.8 18.9C6.4 14.9 4 12.6 4 9A4.2 4.2 0 0 1 8.2 4.8c1.5 0 2.9.7 3.8 1.8.9-1.1 2.3-1.8 3.8-1.8A4.2 4.2 0 0 1 20 9c0 3.6-2.4 5.9-6.8 9.9z" fill="currentColor" />`),
   plusCircle: svgIcon(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="M12 8v8M8 12h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" />`),
+  search: svgIcon(`<circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8" /><path d="m15 15 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" />`),
   video: svgIcon(`<path d="M5 7h10a2 2 0 0 1 2 2v1.3l3-2V16l-3-2v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm0 2v6h10V9z" fill="currentColor" />`)
 });
+
+if (window.Capacitor?.isNativePlatform?.()) {
+  document.documentElement.classList.add("native-app");
+}
 
 function delay(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -207,6 +209,7 @@ function loadPlaylists() {
       .map((playlist) => ({
         id: String(playlist.id || `playlist-${Date.now()}`),
         title: String(playlist.title || "Playlist"),
+        cover: typeof playlist.cover === "string" ? playlist.cover : "",
         trackKeys: Array.isArray(playlist.trackKeys) ? playlist.trackKeys.filter(Boolean).map(String) : [],
         createdAt: Number(playlist.createdAt) || Date.now(),
         updatedAt: Number(playlist.updatedAt) || Number(playlist.createdAt) || Date.now()
@@ -226,8 +229,12 @@ function savePlaylists() {
   else localStorage.removeItem(activePlaylistStorageKey);
 }
 
-const defaultCover = "/assets/covers/asterisk.png";
+const defaultCover = "/assets/brand-logo.png";
+const defaultPlaylistCover = "/defaultplaylist.png";
+const favoritesCover = "/favs.png";
+let pendingPlaylistCoverData = "";
 const musicVideos = [];
+
 
 const state = {
   filter: "all",
@@ -235,7 +242,10 @@ const state = {
   includeUnreleasedInAllPlayback: false,
   sortMode: loadSortMode(),
   yearFilters: loadYearFilters(),
-  menuOpen: false
+  menuOpen: false,
+  playlistPickerTrackKey: "",
+  playlistEditId: "",
+  playlistPageMode: playlists.length ? "playlist" : "favorites"
 };
 
 const playback = {
@@ -252,6 +262,15 @@ const playback = {
   pendingSeekTime: null,
   volume: 1,
   queueOpen: false
+};
+
+const seekGesture = {
+  active: false,
+  pointerId: null,
+  wasPlaying: false,
+  targetTime: 0,
+  slider: null,
+  pausePromise: Promise.resolve()
 };
 
 let databaseReleases = Array.isArray(uploadedReleases) ? uploadedReleases : [];
@@ -519,6 +538,78 @@ function currentRouteKey() {
   return window.location.pathname.replace(/^\/+/, "") || "/";
 }
 
+/* Remember the scroll position of every app route.
+   This keeps list/library/video/playlist positions stable when a detail page is
+   opened and the user later returns. It is intentionally independent of the
+   player scroll guards below. */
+const routeScrollPositions = new Map();
+let routeScrollSaveFrame = 0;
+
+function currentPageScrollTop() {
+  return Math.max(
+    0,
+    Number(window.scrollY || window.pageYOffset || 0),
+    Number(document.documentElement?.scrollTop || 0),
+    Number(document.body?.scrollTop || 0)
+  );
+}
+
+function saveRouteScrollPosition(routeKey = renderedRouteKey || currentRouteKey()) {
+  if (!routeKey) return;
+  routeScrollPositions.set(routeKey, currentPageScrollTop());
+}
+
+function scheduleRouteScrollPositionSave() {
+  if (routeScrollSaveFrame) return;
+  routeScrollSaveFrame = requestAnimationFrame(() => {
+    routeScrollSaveFrame = 0;
+    saveRouteScrollPosition(renderedRouteKey || currentRouteKey());
+  });
+}
+
+function restoreRouteScrollPosition(routeKey) {
+  const savedTop = routeScrollPositions.get(routeKey);
+  if (!Number.isFinite(savedTop)) return false;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const maxScroll = Math.max(
+        0,
+        (document.documentElement?.scrollHeight || document.body?.scrollHeight || 0) - window.innerHeight
+      );
+      const top = Math.min(Math.max(0, savedTop), maxScroll);
+
+      try {
+        window.scrollTo({ top, left: 0, behavior: "auto" });
+      } catch {
+        window.scrollTo(0, top);
+      }
+
+      if (document.documentElement) document.documentElement.scrollTop = top;
+      if (document.body) document.body.scrollTop = top;
+    });
+  });
+
+  return true;
+}
+
+function isInternalRouteLink(link) {
+  if (!(link instanceof HTMLAnchorElement)) return false;
+  if (link.target && link.target !== "_self") return false;
+
+  const href = String(link.getAttribute("href") || "").trim();
+  if (!href || href === "#") return false;
+  if (href.startsWith("#/")) return true;
+  if (href.startsWith("/")) return true;
+
+  try {
+    const url = new URL(link.href, window.location.href);
+    return url.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 function scrollPageToTop() {
   requestAnimationFrame(() => {
     try {
@@ -668,25 +759,6 @@ function sortReleases(releases) {
     .map(({ album }) => album);
 }
 
-function releaseDateLabel(album, options = {}) {
-  const parsed = parsedReleaseDate(album);
-  if (parsed.precision === "exact") {
-    const date = new Date(parsed.year, parsed.month - 1, parsed.day);
-    return new Intl.DateTimeFormat("en", {
-      month: options.short ? "short" : "long",
-      day: "numeric",
-      year: "numeric"
-    }).format(date);
-  }
-
-  if (parsed.precision === "year") return options.short ? String(parsed.year) : `${parsed.year} approx.`;
-  return "Unknown";
-}
-
-function releaseDatePrecision(album) {
-  return parsedReleaseDate(album).precision;
-}
-
 function matchingSongs() {
   const query = state.query.trim().toLowerCase();
   if (!query) return [];
@@ -734,7 +806,7 @@ function playableTrack(album, track) {
     albumKind: album.kind,
     releaseYear: album.releaseYear,
     releaseDate: album.releaseDate,
-    artist: track.artist || album.artist || "Ken Carson",
+    artist: track.artist || album.artist || "",
     primaryArtist: track.primaryArtist || album.primaryArtist || track.artist || album.artist || "",
     cover: album.cover || defaultCover,
     accent: album.accent
@@ -744,19 +816,15 @@ function playableTrack(album, track) {
 }
 
 function trackPrimaryArtist(track) {
-  const artist = String(track?.primaryArtist || track?.artist || "").trim();
-  if (!artist || normalizeText(artist) === "ken carson") return "";
-  return artist;
+  return String(track?.primaryArtist || track?.artist || "").trim();
 }
 
 function trackNativeArtist(track) {
-  return String(track?.primaryArtist || track?.artist || "Ken Carson").trim() || "Ken Carson";
+  return String(track?.primaryArtist || track?.artist || track?.albumTitle || "Local Music").trim() || "Local Music";
 }
 
 function releasePrimaryArtist(album) {
-  const artist = String(album?.primaryArtist || album?.artist || "").trim();
-  if (!artist || normalizeText(artist) === "ken carson") return "";
-  return artist;
+  return String(album?.primaryArtist || album?.artist || "").trim();
 }
 
 function trackProjectSubtitle(track) {
@@ -852,6 +920,7 @@ function createPlaylist(title) {
   const playlist = {
     id: playlistId(),
     title: cleanTitle,
+    cover: "",
     trackKeys: [],
     createdAt: now,
     updatedAt: now
@@ -859,6 +928,7 @@ function createPlaylist(title) {
 
   playlists = [playlist, ...playlists];
   activePlaylistId = playlist.id;
+  state.playlistPageMode = "playlist";
   savePlaylists();
   return playlist;
 }
@@ -869,15 +939,82 @@ function playlistTracks(playlist) {
   return playlist.trackKeys.map((key) => trackLookup.get(key)).filter(Boolean);
 }
 
-function addTrackToActivePlaylist(track) {
+function toggleTrackInPlaylist(track, playlistIdValue) {
   if (!track?.key) return;
 
-  const playlist = getActivePlaylist() || createPlaylist("New Playlist");
-  if (!playlist.trackKeys.includes(track.key)) playlist.trackKeys.push(track.key);
+  const playlist = playlists.find((item) => item.id === playlistIdValue);
+  if (!playlist) return;
+
+  const existingIndex = playlist.trackKeys.indexOf(track.key);
+  if (existingIndex >= 0) playlist.trackKeys.splice(existingIndex, 1);
+  else {
+    playlist.trackKeys.push(track.key);
+    activePlaylistId = playlist.id;
+    state.playlistPageMode = "playlist";
+  }
+
   playlist.updatedAt = Date.now();
   savePlaylists();
-  render();
   updateTrackStates();
+}
+
+function openPlaylistPicker(track) {
+  if (!track?.key) return;
+  ensureTrackLookup();
+  if (!playlists.length) createPlaylist("New Playlist");
+  state.playlistPickerTrackKey = track.key;
+  renderPlaylistPicker();
+}
+
+function closePlaylistPicker() {
+  state.playlistPickerTrackKey = "";
+  renderPlaylistPicker();
+}
+
+function playlistPickerMarkup() {
+  if (!state.playlistPickerTrackKey) return "";
+
+  const track = trackLookup.get(state.playlistPickerTrackKey);
+  if (!track) return "";
+
+  return `
+    <div class="playlist-picker-backdrop" data-close-playlist-picker>
+      <section class="playlist-picker" role="dialog" aria-modal="true" aria-label="Choose playlists" data-playlist-picker>
+        <div class="playlist-picker-head">
+          <span>Add to playlist</span>
+          <button class="icon-button" type="button" data-close-playlist-picker aria-label="Close playlist picker" title="Close">
+            <span aria-hidden="true">${icons.remove}</span>
+          </button>
+        </div>
+        <div class="playlist-picker-track">
+          <img src="${escapeHtml(track.cover || defaultCover)}" alt="${escapeHtml(track.albumTitle || track.title)} cover" loading="lazy" crossorigin="anonymous" />
+          <div>
+            <strong>${escapeHtml(track.title)}</strong>
+            ${trackProjectSubtitle(track) ? `<small>${escapeHtml(trackProjectSubtitle(track))}</small>` : ""}
+          </div>
+        </div>
+        <div class="playlist-picker-list">
+          ${playlists
+            .map((playlist) => {
+              const added = playlist.trackKeys.includes(track.key);
+              return `
+                <button class="playlist-picker-option${added ? " is-added" : ""}" type="button" data-add-to-playlist="${escapeHtml(playlist.id)}" aria-pressed="${added}">
+                  <span>${escapeHtml(playlist.title)}</span>
+                  <small>${added ? "Selected" : pluralTracks(playlist.trackKeys.length)}</small>
+                </button>
+              `;
+            })
+            .join("")}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderPlaylistPicker() {
+  document.querySelectorAll(".playlist-picker-backdrop").forEach((element) => element.remove());
+  const markup = playlistPickerMarkup();
+  if (markup) document.body.insertAdjacentHTML("beforeend", markup);
 }
 
 function removePlaylistTrack(playlistIdValue, index) {
@@ -893,6 +1030,7 @@ function removePlaylistTrack(playlistIdValue, index) {
 function deletePlaylist(playlistIdValue) {
   playlists = playlists.filter((playlist) => playlist.id !== playlistIdValue);
   if (activePlaylistId === playlistIdValue) activePlaylistId = playlists[0]?.id || "";
+  if (!playlists.length) state.playlistPageMode = "favorites";
   savePlaylists();
   render();
   updateTrackStates();
@@ -932,6 +1070,28 @@ function absoluteAppUrl(path) {
 
 function getArchiveMediaPlugin() {
   return window.Capacitor?.Plugins?.ArchiveMedia || null;
+}
+
+async function resolvePersistentVideoSources() {
+  const archiveMedia = getArchiveMediaPlugin();
+  if (!archiveMedia || typeof archiveMedia.getMediaPath !== "function") return;
+
+  const videos = [...document.querySelectorAll("video[data-local-video-src]")];
+  await Promise.allSettled(
+    videos.map(async (video) => {
+      const webPath = video.dataset.localVideoSrc;
+      if (!webPath) return;
+      const result = await archiveMedia.getMediaPath({ path: webPath });
+      if (!result?.uri) return;
+      const resolved = window.Capacitor?.convertFileSrc
+        ? window.Capacitor.convertFileSrc(result.uri)
+        : result.uri;
+      const source = video.querySelector("source");
+      if (source) source.src = resolved;
+      else video.src = resolved;
+      video.load();
+    })
+  );
 }
 
 let nativeMediaListenerReady = false;
@@ -1020,7 +1180,7 @@ function restoreTrackFromPayload(payload) {
     albumKind: payload.albumKind || "",
     releaseYear: payload.releaseYear || "",
     releaseDate: payload.releaseDate || "",
-    artist: payload.artist || "Ken Carson",
+    artist: payload.artist || "",
     primaryArtist: payload.primaryArtist || payload.artist || "",
     src: payload.src,
     cover: payload.cover || defaultCover,
@@ -1164,6 +1324,10 @@ function startNativeStateTimer() {
 function updateUiFromNativeState(state = {}) {
   if (!state) return;
 
+  const previousTrackKey = playback.current?.key || "";
+  const previousQueueKeys = playback.queue.map((track) => track.key).join("|");
+  const previousRepeatMode = playback.repeatMode;
+
   applyNativeQueueState(state);
 
   if (typeof state.position === "number") playback.time = state.position;
@@ -1190,7 +1354,16 @@ function updateUiFromNativeState(state = {}) {
     }
   }
 
-  renderPlayer();
+  const playerStructureChanged =
+    previousTrackKey !== (playback.current?.key || "") ||
+    previousQueueKeys !== playback.queue.map((track) => track.key).join("|") ||
+    previousRepeatMode !== playback.repeatMode;
+
+  if (playerStructureChanged) renderPlayer();
+  else {
+    syncPlayerPlaybackControls();
+    syncPlayerTime();
+  }
   updateTrackStates();
   updateMediaSession(true);
   persistPlaybackState();
@@ -1279,7 +1452,7 @@ async function nativePlayQueueFromState(startIndex = 0, options = {}) {
 
     playback.isPlaying = true;
     startNativeStateTimer();
-    renderPlayer();
+    syncPlayerPlaybackControls();
     updateTrackStates();
     return true;
   } catch {
@@ -1291,13 +1464,17 @@ async function nativePause() {
   const archiveMedia = getArchiveMediaPlugin();
   if (!archiveMedia || typeof archiveMedia.pause !== "function") return false;
 
+  const previousState = playback.isPlaying;
+  playback.isPlaying = false;
+  syncPlayerPlaybackControls();
+
   try {
     await archiveMedia.pause();
-    playback.isPlaying = false;
-    renderPlayer();
     updateTrackStates();
     return true;
   } catch {
+    playback.isPlaying = previousState;
+    syncPlayerPlaybackControls();
     return false;
   }
 }
@@ -1306,14 +1483,18 @@ async function nativeResume() {
   const archiveMedia = getArchiveMediaPlugin();
   if (!archiveMedia || typeof archiveMedia.resume !== "function") return false;
 
+  const previousState = playback.isPlaying;
+  playback.isPlaying = true;
+  syncPlayerPlaybackControls();
+
   try {
     await archiveMedia.resume();
-    playback.isPlaying = true;
     startNativeStateTimer();
-    renderPlayer();
     updateTrackStates();
     return true;
   } catch {
+    playback.isPlaying = previousState;
+    syncPlayerPlaybackControls();
     return false;
   }
 }
@@ -1342,12 +1523,14 @@ async function nativePrevious() {
   }
 }
 
-async function nativeSeek(position) {
+async function nativeSeek(position, resumeAfter = null) {
   const archiveMedia = getArchiveMediaPlugin();
   if (!archiveMedia || typeof archiveMedia.seekTo !== "function") return false;
 
   try {
-    await archiveMedia.seekTo({ position });
+    const options = { position };
+    if (typeof resumeAfter === "boolean") options.resumeAfter = resumeAfter;
+    await archiveMedia.seekTo(options);
     return true;
   } catch {
     return false;
@@ -1487,12 +1670,14 @@ function handleInAppBackButton() {
   }
 
   if (isAlbumRoute() || isVideosRoute() || isPlaylistsRoute() || isAddRoute()) {
+    saveRouteScrollPosition(renderedRouteKey || currentRouteKey());
     history.pushState({}, "", "/");
     render();
     return true;
   }
 
   if (window.location.hash && window.location.hash !== "#/" && window.location.hash !== "#") {
+    saveRouteScrollPosition(renderedRouteKey || currentRouteKey());
     history.pushState({}, "", "/");
     render();
     return true;
@@ -1502,7 +1687,7 @@ function handleInAppBackButton() {
 }
 
 function setupAndroidBackButton() {
-  window.__kenHandleAndroidBack = handleInAppBackButton;
+  window.__archiveHandleAndroidBack = handleInAppBackButton;
   window.addEventListener("androidBackButton", handleInAppBackButton);
 
   const appPlugin = window.Capacitor?.Plugins?.App;
@@ -1655,6 +1840,7 @@ function renderShell(content) {
       ${content}
     </div>
   `;
+  renderPlaylistPicker();
 }
 
 function setReleaseBackground(album) {
@@ -1684,6 +1870,7 @@ function clearReleaseBackground() {
 
 let centerReleaseFocusFrame = 0;
 let centeredReleaseCard = null;
+let lastCenteredReleaseFocusAt = 0;
 
 function shouldUseCenterReleaseFocus() {
   return (
@@ -1701,6 +1888,7 @@ function clearCenteredReleaseCard() {
 
 function updateCenteredReleaseCard() {
   centerReleaseFocusFrame = 0;
+  lastCenteredReleaseFocusAt = performance.now();
 
   const cards = Array.from(document.querySelectorAll(".album-grid .album-card"));
   if (!cards.length || !shouldUseCenterReleaseFocus()) {
@@ -1735,7 +1923,7 @@ function updateCenteredReleaseCard() {
     centeredReleaseCard &&
     centeredReleaseCard.isConnected &&
     currentDistance < Number.POSITIVE_INFINITY &&
-    currentDistance <= closestDistance + 84;
+    currentDistance <= closestDistance + 132;
 
   const nextCenteredCard = shouldKeepCurrent ? centeredReleaseCard : closestCard;
   if (nextCenteredCard === centeredReleaseCard) return;
@@ -1747,7 +1935,32 @@ function updateCenteredReleaseCard() {
 
 function scheduleCenteredReleaseFocusUpdate() {
   if (centerReleaseFocusFrame) return;
-  centerReleaseFocusFrame = window.requestAnimationFrame(updateCenteredReleaseCard);
+
+  const elapsed = performance.now() - lastCenteredReleaseFocusAt;
+  const delay = Math.max(0, 90 - elapsed);
+
+  centerReleaseFocusFrame = window.setTimeout(() => {
+    centerReleaseFocusFrame = window.requestAnimationFrame(updateCenteredReleaseCard);
+  }, delay);
+}
+
+function albumCard(album) {
+  const hasTrackCount = showReleaseTrackCount(album);
+
+  return `
+    <a class="album-card" href="${albumUrl(album)}" style="--accent: ${escapeHtml(album.accent)}">
+      ${coverMarkup(album, "album-art")}
+      <span class="shine"></span>
+      <div class="card-copy">
+        <div class="card-meta">
+          <span class="badge">${escapeHtml(releaseKindLabel(album.kind))}</span>
+          ${album.releaseYear ? `<span class="card-year">${escapeHtml(album.releaseYear)}</span>` : ""}
+        </div>
+        <div class="card-track-line">${hasTrackCount ? pluralTracks(album.tracks.length) : ""}</div>
+        <h2 data-fit-title data-fit-edge=".album-card" data-fit-min="4.8">${escapeHtml(album.title)}</h2>
+      </div>
+    </a>
+  `;
 }
 
 function renderLibrary() {
@@ -1802,7 +2015,7 @@ function burgerMenuMarkup() {
         <span></span>
       </button>
       <nav class="burger-menu${state.menuOpen ? " is-open" : ""}" aria-label="Archive menu">
-        <a href="/add" data-menu-link>Add</a>
+        <a href="#/add" data-menu-link>Add Music</a>
         <a href="#/playlists" data-menu-link>Playlists</a>
         <button type="button" data-install-app>Install App</button>
       </nav>
@@ -1905,119 +2118,302 @@ function yearFilterMarkup() {
   `;
 }
 
-function playlistSectionMarkup() {
-  const playlist = getActivePlaylist();
-  const tracks = playlistTracks(playlist);
+
+function playlistCoverSrc(playlist) {
+  return String(playlist?.cover || "").trim() || defaultPlaylistCover;
+}
+
+function playlistCoverImageMarkup(playlist, className = "playlist-artwork", alt = "") {
+  return `
+    <div class="${className} is-single playlist-custom-art">
+      <img
+        src="${escapeHtml(playlistCoverSrc(playlist))}"
+        alt="${escapeHtml(alt)}"
+        loading="lazy"
+        data-playlist-cover-image
+      />
+    </div>
+  `;
+}
+
+function openPlaylistEditor(playlistIdValue) {
+  const playlist = playlists.find((item) => item.id === playlistIdValue);
+  if (!playlist) return;
+  state.playlistEditId = playlist.id;
+  pendingPlaylistCoverData = "";
+  renderPlaylistEditor();
+}
+
+function closePlaylistEditor() {
+  state.playlistEditId = "";
+  pendingPlaylistCoverData = "";
+  renderPlaylistEditor();
+}
+
+function playlistEditorMarkup() {
+  const playlist = playlists.find((item) => item.id === state.playlistEditId);
+  if (!playlist) return "";
 
   return `
-    <section class="playlist-panel" aria-label="Custom playlists">
-      <div class="section-heading">
-        <h2>Custom Playlists</h2>
-        <span>${playlists.length} ${playlists.length === 1 ? "list" : "lists"}</span>
-      </div>
-      <div class="playlist-tools">
-        <label class="playlist-name-field">
-          <span>Title</span>
-          <input data-playlist-title type="text" placeholder="New playlist" autocomplete="off" />
-        </label>
-        <button class="thin-button" type="button" data-create-playlist>Create</button>
-        <label class="playlist-select-field">
-          <span>Active</span>
-          <select data-active-playlist ${playlists.length ? "" : "disabled"}>
-            ${playlists.length
-              ? playlists
-                  .map(
-                    (item) =>
-                      `<option value="${escapeHtml(item.id)}" ${playlist?.id === item.id ? "selected" : ""}>${escapeHtml(item.title)}</option>`
-                  )
-                  .join("")
-              : `<option>No playlist</option>`}
-          </select>
-        </label>
-        <button class="thin-button" type="button" data-play-playlist="${escapeHtml(playlist?.id || "")}" ${tracks.length ? "" : "disabled"}>
-          <span aria-hidden="true">${icons.play}</span>
-          Play
+    <div class="playlist-edit-backdrop" data-close-playlist-editor>
+      <section class="playlist-edit-dialog" role="dialog" aria-modal="true" aria-label="Edit playlist" data-playlist-edit-dialog>
+        <div class="playlist-edit-head">
+          <h2>Edit playlist</h2>
+          <button class="icon-button" type="button" data-close-playlist-editor aria-label="Close" title="Close">
+            <span aria-hidden="true">${icons.remove}</span>
+          </button>
+        </div>
+
+        <div class="playlist-edit-body">
+          <div class="playlist-edit-cover-wrap">
+            <img
+              class="playlist-edit-cover"
+              data-playlist-edit-preview
+              src="${escapeHtml(playlistCoverSrc(playlist))}"
+              alt="${escapeHtml(playlist.title)} cover"
+            />
+            <label class="thin-button playlist-edit-cover-button">
+              Change image
+              <input data-playlist-edit-cover type="file" accept="image/*" hidden />
+            </label>
+            <button class="playlist-reset-cover" type="button" data-reset-playlist-cover>Use default image</button>
+          </div>
+
+          <label class="playlist-edit-name">
+            <span>Name</span>
+            <input data-playlist-edit-name type="text" value="${escapeHtml(playlist.title)}" maxlength="80" autocomplete="off" />
+          </label>
+        </div>
+
+        <div class="playlist-edit-actions">
+          <button class="thin-button" type="button" data-close-playlist-editor>Cancel</button>
+          <button class="thin-button playlist-save-edit" type="button" data-save-playlist-edit="${escapeHtml(playlist.id)}">Save</button>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderPlaylistEditor() {
+  document.querySelectorAll(".playlist-edit-backdrop").forEach((element) => element.remove());
+  const markup = playlistEditorMarkup();
+  if (markup) document.body.insertAdjacentHTML("beforeend", markup);
+}
+
+function resizePlaylistCoverFile(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !String(file.type || "").startsWith("image/")) {
+      reject(new Error("Choose an image file."));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("Could not load image."));
+      image.onload = () => {
+        const maxSize = 640;
+        const scale = Math.min(1, maxSize / Math.max(image.naturalWidth || 1, image.naturalHeight || 1));
+        const width = Math.max(1, Math.round((image.naturalWidth || 1) * scale));
+        const height = Math.max(1, Math.round((image.naturalHeight || 1) * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          reject(new Error("Could not process image."));
+          return;
+        }
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.84));
+      };
+      image.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function previewPlaylistCoverFile(file) {
+  try {
+    pendingPlaylistCoverData = await resizePlaylistCoverFile(file);
+    const preview = document.querySelector("[data-playlist-edit-preview]");
+    if (preview) preview.src = pendingPlaylistCoverData;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function savePlaylistEdit(playlistIdValue) {
+  const playlist = playlists.find((item) => item.id === playlistIdValue);
+  if (!playlist) return;
+
+  const nameInput = document.querySelector("[data-playlist-edit-name]");
+  const nextTitle = String(nameInput?.value || "").trim();
+  if (nextTitle) playlist.title = nextTitle;
+
+  if (pendingPlaylistCoverData === "__DEFAULT__") playlist.cover = "";
+  else if (pendingPlaylistCoverData) playlist.cover = pendingPlaylistCoverData;
+
+  playlist.updatedAt = Date.now();
+  savePlaylists();
+  closePlaylistEditor();
+  render();
+  updateTrackStates();
+}
+
+function playlistArtworkMarkup(tracks, className = "playlist-artwork") {
+  const covers = tracks.slice(0, 4).map((track) => track.cover || defaultCover);
+  if (!covers.length) {
+    return `<div class="${className} is-empty"><img src="${escapeHtml(defaultCover)}" alt="" /></div>`;
+  }
+
+  if (covers.length === 1) {
+    return `<div class="${className} is-single"><img src="${escapeHtml(covers[0])}" alt="" /></div>`;
+  }
+
+  while (covers.length < 4) covers.push(covers[covers.length - 1]);
+  return `
+    <div class="${className} is-grid" aria-hidden="true">
+      ${covers.map((cover) => `<img src="${escapeHtml(cover)}" alt="" loading="lazy" crossorigin="anonymous" />`).join("")}
+    </div>
+  `;
+}
+
+function playlistSidebarMarkup() {
+  const favorites = favoriteTracks();
+  const activePlaylist = getActivePlaylist();
+  const favoriteActive = state.playlistPageMode === "favorites";
+
+  return `
+    <aside class="playlist-browser" aria-label="Your playlists">
+      <div class="playlist-create">
+        <input data-playlist-title type="text" placeholder="New playlist" autocomplete="off" aria-label="New playlist name" />
+        <button class="playlist-create-button" type="button" data-create-playlist aria-label="Create playlist" title="Create playlist">
+          <span aria-hidden="true">+</span>
         </button>
-        <button class="thin-button" type="button" data-randomize-playlist="${escapeHtml(playlist?.id || "")}" ${tracks.length ? "" : "disabled"}>
-          <span aria-hidden="true">${icons.shuffle}</span>
-          Random
-        </button>
-        <button class="thin-button" type="button" data-delete-playlist="${escapeHtml(playlist?.id || "")}" ${playlist ? "" : "disabled"}>
-          Delete
-        </button>
       </div>
-      <div class="playlist-track-list">
-        ${playlistTrackListMarkup(playlist, tracks)}
+
+      <div class="playlist-browser-list">
+        <button class="playlist-browser-item${favoriteActive ? " is-active" : ""}" type="button" data-open-favorites>
+          <div class="playlist-browser-art is-single"><img src="${favoritesCover}" alt="Favorites cover" /></div>
+          <span class="playlist-browser-copy">
+            <strong>Liked Songs</strong>
+            <small>${pluralTracks(favorites.length)}</small>
+          </span>
+        </button>
+
+        ${playlists.map((playlist) => {
+          const tracks = playlistTracks(playlist);
+          const active = !favoriteActive && activePlaylist?.id === playlist.id;
+          return `
+            <button class="playlist-browser-item${active ? " is-active" : ""}" type="button" data-open-playlist="${escapeHtml(playlist.id)}">
+              ${playlistCoverImageMarkup(playlist, "playlist-browser-art", `${playlist.title} cover`)}
+              <span class="playlist-browser-copy">
+                <strong>${escapeHtml(playlist.title)}</strong>
+                <small>${pluralTracks(tracks.length)}</small>
+              </span>
+            </button>
+          `;
+        }).join("")}
       </div>
+    </aside>
+  `;
+}
+
+function spotifyPlaylistTrackRows(tracks, options = {}) {
+  const playlist = options.playlist || null;
+  const favorites = options.favorites === true;
+  if (!tracks.length) return `<div class="spotify-playlist-empty">No songs yet</div>`;
+
+  return `
+    <div class="spotify-track-list" role="list">
+      ${tracks.map((track, index) => `
+        <div class="spotify-track-row" role="listitem" data-track-key="${escapeHtml(track.key)}">
+          <button class="spotify-track-index" type="button"
+            ${favorites
+              ? `data-play-favorite-index="${index}"`
+              : `data-play-playlist-track="${escapeHtml(playlist.id)}" data-playlist-track-index="${index}"`}
+            aria-label="Play ${escapeHtml(track.title)}" title="Play">
+            <span class="spotify-track-number">${index + 1}</span>
+            <span class="spotify-track-play" aria-hidden="true">${icons.play}</span>
+          </button>
+          <img class="spotify-track-cover" src="${escapeHtml(track.cover || defaultCover)}" alt="" loading="lazy" crossorigin="anonymous" />
+          <div class="spotify-track-copy">
+            <strong>${escapeHtml(track.title)}</strong>
+            <small>${escapeHtml(trackProjectSubtitle(track) || track.albumTitle || "Local Music")}</small>
+          </div>
+          <span class="spotify-track-album">${escapeHtml(track.albumTitle || "")}</span>
+          ${favorites
+            ? `<button class="icon-button favorite-track is-saved spotify-track-remove" type="button" data-favorite-track="${escapeHtml(track.key)}" aria-pressed="true" aria-label="Remove ${escapeHtml(track.title)} from liked songs" title="Remove from Liked Songs"><span aria-hidden="true">${icons.favoriteFilled}</span></button>`
+            : `<button class="icon-button spotify-track-remove" type="button" data-remove-playlist-track="${escapeHtml(playlist.id)}" data-playlist-track-index="${index}" aria-label="Remove ${escapeHtml(track.title)}" title="Remove from playlist"><span aria-hidden="true">${icons.remove}</span></button>`}
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function playlistDetailMarkup() {
+  if (state.playlistPageMode === "favorites") {
+    const favorites = favoriteTracks();
+    return `
+      <section class="spotify-playlist-detail" aria-label="Liked Songs">
+        <div class="spotify-playlist-hero">
+          <div class="spotify-playlist-art is-single"><img src="${favoritesCover}" alt="Favorites cover" /></div>
+          <div class="spotify-playlist-copy">
+            <span class="spotify-playlist-type">Playlist</span>
+            <h1>Liked Songs</h1>
+            <p>${pluralTracks(favorites.length)}</p>
+          </div>
+        </div>
+        <div class="spotify-playlist-actions">
+          <button class="spotify-play-button" type="button" data-play-favorites ${favorites.length ? "" : "disabled"} aria-label="Play liked songs"><span aria-hidden="true">${icons.play}</span></button>
+          <button class="thin-button" type="button" data-randomize-favorites ${favorites.length ? "" : "disabled"}><span aria-hidden="true">${icons.shuffle}</span> Shuffle</button>
+        </div>
+        ${spotifyPlaylistTrackRows(favorites, { favorites: true })}
+      </section>
+    `;
+  }
+
+  const playlist = getActivePlaylist();
+  if (!playlist) {
+    return `
+      <section class="spotify-playlist-detail is-empty">
+        <div class="spotify-playlist-empty">Create a playlist to get started.</div>
+      </section>
+    `;
+  }
+
+  const tracks = playlistTracks(playlist);
+  return `
+    <section class="spotify-playlist-detail" aria-label="${escapeHtml(playlist.title)}">
+      <div class="spotify-playlist-hero">
+        <button class="spotify-playlist-art-button" type="button" data-edit-playlist="${escapeHtml(playlist.id)}" aria-label="Edit playlist image" title="Edit playlist">
+          ${playlistCoverImageMarkup(playlist, "spotify-playlist-art", `${playlist.title} cover`)}
+        </button>
+        <div class="spotify-playlist-copy">
+          <span class="spotify-playlist-type">Playlist</span>
+          <h1>${escapeHtml(playlist.title)}</h1>
+          <p>${pluralTracks(tracks.length)}</p>
+        </div>
+      </div>
+      <div class="spotify-playlist-actions">
+        <button class="spotify-play-button" type="button" data-play-playlist="${escapeHtml(playlist.id)}" ${tracks.length ? "" : "disabled"} aria-label="Play ${escapeHtml(playlist.title)}"><span aria-hidden="true">${icons.play}</span></button>
+        <button class="thin-button" type="button" data-randomize-playlist="${escapeHtml(playlist.id)}" ${tracks.length ? "" : "disabled"}><span aria-hidden="true">${icons.shuffle}</span> Shuffle</button>
+        <button class="thin-button" type="button" data-edit-playlist="${escapeHtml(playlist.id)}">Edit</button>
+        <button class="thin-button spotify-delete-playlist" type="button" data-delete-playlist="${escapeHtml(playlist.id)}">Delete playlist</button>
+      </div>
+      ${spotifyPlaylistTrackRows(tracks, { playlist })}
     </section>
   `;
 }
 
-function playlistTrackListMarkup(playlist, tracks) {
-  if (!playlist) return `<div class="playlist-empty">No playlist</div>`;
-  if (!tracks.length) return `<div class="playlist-empty">No tracks</div>`;
-
-  return tracks
-    .map(
-      (track, index) => `
-        <div class="playlist-row" data-track-key="${escapeHtml(track.key)}">
-          <button class="icon-button" type="button" data-play-playlist-track="${escapeHtml(playlist.id)}" data-playlist-track-index="${index}" aria-label="Play ${escapeHtml(track.title)}" title="Play">
-            <span aria-hidden="true">${icons.play}</span>
-          </button>
-          <img src="${escapeHtml(track.cover || defaultCover)}" alt="${escapeHtml(track.albumTitle)} cover" loading="lazy" crossorigin="anonymous" />
-          <div class="playlist-row-copy">
-            <strong>${escapeHtml(track.title)}</strong>
-            ${trackProjectSubtitle(track) ? `<small>${escapeHtml(trackProjectSubtitle(track))}</small>` : ""}
-          </div>
-          <button class="icon-button" type="button" data-remove-playlist-track="${escapeHtml(playlist.id)}" data-playlist-track-index="${index}" aria-label="Remove ${escapeHtml(track.title)}" title="Remove">
-            <span aria-hidden="true">${icons.remove}</span>
-          </button>
-        </div>
-      `
-    )
-    .join("");
-}
-
-function albumCard(album) {
-  const hasTrackCount = showReleaseTrackCount(album);
-
+function playlistSectionMarkup() {
   return `
-    <a class="album-card" href="${albumUrl(album)}" style="--accent: ${escapeHtml(album.accent)}">
-      ${coverMarkup(album, "album-art")}
-      <span class="shine"></span>
-      <div class="card-copy">
-        <div class="card-meta">
-          <span class="badge">${escapeHtml(releaseKindLabel(album.kind))}</span>
-          ${album.releaseYear ? `<span class="card-year">${escapeHtml(album.releaseYear)}</span>` : ""}
-        </div>
-        <div class="card-track-line">${hasTrackCount ? pluralTracks(album.tracks.length) : ""}</div>
-        <h2 data-fit-title data-fit-edge=".album-card" data-fit-min="4.8">${escapeHtml(album.title)}</h2>
-      </div>
-    </a>
-  `;
-}
-
-function coverMarkup(album, className) {
-  const cover = album.cover || defaultCover;
-  return `
-    <span class="${className}-frame">
-      <img class="${className}" src="${escapeHtml(cover)}" alt="${escapeHtml(album.title)} cover" loading="lazy" crossorigin="anonymous" />
-    </span>
-  `;
-}
-
-function heroCoverMarkup(album) {
-  const cover = album.cover || defaultCover;
-  if (!album.animatedCover) {
-    return coverMarkup(album, "hero-cover");
-  }
-
-  return `
-    <span class="hero-cover-frame">
-      <video class="hero-cover" autoplay loop muted playsinline poster="${escapeHtml(cover)}" aria-label="${escapeHtml(album.title)} animated cover">
-        <source src="${escapeHtml(album.animatedCover)}" type="video/mp4" />
-      </video>
-    </span>
+    <section class="spotify-playlist-shell">
+      ${playlistSidebarMarkup()}
+      ${playlistDetailMarkup()}
+    </section>
   `;
 }
 
@@ -2191,40 +2587,36 @@ function scheduleFitReleaseTitles() {
 }
 
 function renderAddPage() {
-  document.title = "Add Release | archive";
+  document.title = "Add Music | archive";
   clearCountdown();
   clearReleaseBackground();
 
   renderShell(`
-    <header class="album-top">
+    <header class="album-top add-topbar">
       <a class="back-link" href="/" data-home-link>Back</a>
-      <div class="album-stats">
-        <span>Device storage</span>
-        <span>Add</span>
-      </div>
     </header>
 
-    <main class="add-page">
-      <section class="add-hero">
-        <p class="eyebrow">Library upload</p>
-        <h1>Add Release</h1>
-      </section>
-
-      <form class="add-form" data-add-form>
+    <main class="add-page add-page-clean">
+      <form class="add-form add-form-clean" data-add-form action="/api/releases" method="post" enctype="multipart/form-data">
         <label>
           <span>Title</span>
-          <input name="title" type="text" required autocomplete="off" />
+          <input name="title" type="text" required autocomplete="off" placeholder="Song or release title" />
         </label>
 
         <label>
-          <span>Type</span>
-          <select name="kind" required>
-            <option value="Single">Single</option>
-            <option value="Album">Album</option>
-            <option value="EP">EP</option>
-            <option value="Unreleased">Unreleased</option>
-          </select>
+          <span>Artist</span>
+          <input name="artist" type="text" autocomplete="off" placeholder="Artist" />
         </label>
+
+        <fieldset class="kind-picker wide-field">
+          <legend>Type</legend>
+          <div class="kind-picker-options">
+            <label><input type="radio" name="kind" value="Single" checked /><span>Single</span></label>
+            <label><input type="radio" name="kind" value="Album" /><span>Album</span></label>
+            <label><input type="radio" name="kind" value="EP" /><span>EP</span></label>
+            <label><input type="radio" name="kind" value="Unreleased" /><span>Unreleased</span></label>
+          </div>
+        </fieldset>
 
         <label>
           <span>Release year</span>
@@ -2238,13 +2630,12 @@ function renderAddPage() {
 
         <label class="wide-field">
           <span>Audio</span>
-          <input name="audio" type="file" accept=".mp3,.m4a,.wav,audio/*" multiple />
+          <input name="audio" type="file" accept=".mp3,audio/mpeg,.m4a,audio/mp4,.aac,audio/aac,.wav,audio/wav,.flac,audio/flac" multiple />
         </label>
 
-        <div class="upload-preview" data-upload-preview>No files selected</div>
-
-        <div class="upload-status" data-upload-status aria-live="polite"></div>
-        <button class="thin-button submit-upload" type="submit">Upload</button>
+        <div class="upload-preview wide-field" data-upload-preview>No files selected</div>
+        <div class="upload-status wide-field" data-upload-status aria-live="polite"></div>
+        <button class="thin-button submit-upload wide-field" type="submit">Add to library</button>
       </form>
     </main>
   `);
@@ -2261,13 +2652,11 @@ function renderVideosPage() {
       <a class="back-link" href="/" data-home-link>Back</a>
       <div class="album-stats">
         <span>${musicVideos.length} videos</span>
-        <span>Ken Carson</span>
       </div>
     </header>
 
     <main class="videos-page">
       <section class="videos-hero">
-        <p class="eyebrow">archive</p>
         <h1>Music Videos</h1>
       </section>
 
@@ -2278,6 +2667,8 @@ function renderVideosPage() {
       </section>
     </main>
   `);
+
+  void resolvePersistentVideoSources();
 }
 
 function renderPlaylistsPage() {
@@ -2286,20 +2677,14 @@ function renderPlaylistsPage() {
   clearReleaseBackground();
 
   renderShell(`
-    <header class="album-top">
+    <header class="album-top playlists-topbar">
       <a class="back-link" href="/" data-home-link>Back</a>
-      <div class="album-stats">
-        <span>${playlists.length} playlists</span>
-        <span>Favorites ${favoriteKeys.size}</span>
-      </div>
     </header>
 
-    <main class="playlists-page">
-      <section class="videos-hero">
-        <p class="eyebrow">archive</p>
+    <main class="playlists-page spotify-playlists-page">
+      <div class="playlist-page-head">
         <h1>Playlists</h1>
-      </section>
-      ${favoritesPanelMarkup()}
+      </div>
       ${playlistSectionMarkup()}
     </main>
   `);
@@ -2356,7 +2741,7 @@ function videoCard(video, activeVideoSlug = "") {
   return `
     <article class="video-card${isTargeted ? " is-targeted" : ""}" id="video-${escapeHtml(slug)}" data-video-slug="${escapeHtml(slug)}" tabindex="-1">
       <div class="video-frame">
-        <video controls preload="metadata" playsinline webkit-playsinline poster="${escapeHtml(poster)}" title="${escapeHtml(video.title)}">
+        <video controls preload="metadata" playsinline webkit-playsinline data-local-video-src="${escapeHtml(video.src)}" poster="${escapeHtml(poster)}" title="${escapeHtml(video.title)}">
           <source src="${escapeHtml(video.src)}" type="video/mp4" />
         </video>
       </div>
@@ -2461,7 +2846,7 @@ function renderNotFound() {
   `);
 }
 
-function renderPlayer() {
+function renderPlayerFull() {
   const current = playback.current;
   const progress = getProgressValue();
   const repeatLabel = getRepeatLabel();
@@ -2472,10 +2857,12 @@ function renderPlayer() {
 
   playerRoot.innerHTML = `
     <section class="player-bar${current ? "" : " is-empty"}${queueOpen ? " queue-open" : ""}" aria-label="Now playing">
-      <button
+      <div
         class="player-drag-toggle"
-        type="button"
         data-player-expand
+        role="button"
+        tabindex="0"
+        draggable="false"
         aria-label="${queueOpen ? "Close player" : "Open player"}"
         aria-expanded="${queueOpen}"
         title="${queueOpen ? "Close player" : "Open player"}"
@@ -2483,7 +2870,7 @@ function renderPlayer() {
         <span></span>
         <span></span>
         <span></span>
-      </button>
+      </div>
 
       <div class="player-cover-wrap">
         ${
@@ -2499,7 +2886,7 @@ function renderPlayer() {
 
       <div class="player-main">
         <div class="player-meta">
-          <strong>${current ? escapeHtml(current.title) : "No song selected"}</strong>
+          <strong class="player-title" data-player-title><span data-marquee-text="${current ? escapeHtml(current.title) : "No song selected"}">${current ? escapeHtml(current.title) : "No song selected"}</span></strong>
           ${
             current
               ? subtitle
@@ -2580,25 +2967,335 @@ function renderPlayer() {
   `;
 
   syncPlayerTime();
+  schedulePlayerTitleMarquee();
   persistPlaybackState();
 }
 
-function queuePreviewMarkup(queuePreview) {
-  return `
-    <div class="queue-items">
-      ${
-        queuePreview.length
-          ? queuePreview
-              .map((track) => {
-                const subtitle = trackProjectSubtitle(track);
-                return `<span>${escapeHtml(track.title)} ${subtitle ? `<small>${escapeHtml(subtitle)}</small>` : ""}</span>`;
-              })
-              .join("")
-          : `<span class="queue-empty">Empty</span>`
+
+/* Android WebView stability: keep the already-painted player DOM alive when
+   only track/queue/repeat data changes. Rebuilding playerRoot.innerHTML for
+   every native skip forces WebView to destroy/recreate the wheel, cover and
+   composited surfaces, which can produce a visible white/empty flash. */
+function syncExistingNativePlayer() {
+  if (!isNativePlaybackAvailable()) return false;
+
+  const bar = playerRoot.querySelector(".player-bar");
+  if (!bar) return false;
+
+  const current = playback.current;
+  const queueOpen = Boolean(playback.queueOpen);
+  const domIsEmpty = bar.classList.contains("is-empty");
+  const domQueueOpen = bar.classList.contains("queue-open");
+
+  // These two state changes alter the actual layout/markup and still need a
+  // full render. Normal next/previous/repeat/queue updates stay in place.
+  if (domIsEmpty !== !current || domQueueOpen !== queueOpen || !current) return false;
+
+  document.body.classList.toggle("player-queue-open", queueOpen);
+
+  const coverWrap = bar.querySelector(".player-cover-wrap");
+  const coverLink = coverWrap?.querySelector(".player-cover-link");
+  const coverImage = coverWrap?.querySelector(".player-cover");
+  if (!coverWrap || !coverLink || !coverImage) return false;
+
+  const coverSrc = current.cover || defaultCover;
+  coverLink.setAttribute("href", `#/album/${current.albumId}`);
+  coverLink.setAttribute("aria-label", `Open ${current.albumTitle}`);
+  coverImage.setAttribute("alt", `${current.albumTitle} cover`);
+
+  // Keep the old cover painted until the next local image is ready. This
+  // prevents the cover layer itself from blinking during a fast skip.
+  if (coverImage.getAttribute("src") !== coverSrc) {
+    const targetKey = current.key;
+    const preloadedCover = new Image();
+    const commitCover = () => {
+      if (playback.current?.key !== targetKey) return;
+      const liveImage = playerRoot.querySelector(".player-cover");
+      if (liveImage) liveImage.setAttribute("src", coverSrc);
+    };
+    preloadedCover.addEventListener("load", commitCover, { once: true });
+    preloadedCover.src = coverSrc;
+    if (preloadedCover.complete && preloadedCover.naturalWidth > 0) commitCover();
+  }
+
+  const title = bar.querySelector("[data-player-title]");
+  const titleText = title?.querySelector("span");
+  if (!title || !titleText) return false;
+  titleText.textContent = current.title;
+  titleText.dataset.marqueeText = current.title;
+
+  const meta = bar.querySelector(".player-meta");
+  if (!meta) return false;
+  const metaContent = meta.querySelector(".player-meta-content") || meta;
+  const subtitle = trackProjectSubtitle(current);
+  let subtitleNode = Array.from(metaContent.children).find((child) => child.tagName === "SPAN") || null;
+  if (subtitle) {
+    if (!subtitleNode) {
+      subtitleNode = document.createElement("span");
+      metaContent.append(subtitleNode);
+    }
+    subtitleNode.textContent = subtitle;
+  } else {
+    subtitleNode?.remove();
+  }
+
+  const favorite = bar.querySelector("[data-player-favorite]");
+  if (favorite) {
+    const saved = isFavoriteTrack(current);
+    favorite.classList.toggle("is-saved", saved);
+    favorite.setAttribute("aria-label", saved ? "Remove from favorites" : "Save to favorites");
+    favorite.setAttribute("title", saved ? "Saved" : "Save to favorites");
+    favorite.setAttribute("aria-pressed", String(saved));
+    const favoriteIcon = favorite.querySelector("span");
+    if (favoriteIcon) favoriteIcon.innerHTML = saved ? icons.favoriteFilled : icons.favorite;
+  }
+
+  const progress = bar.querySelector("[data-player-progress]");
+  if (progress) progress.disabled = false;
+
+  const previousButton = bar.querySelector("[data-player-prev]");
+  if (previousButton) previousButton.disabled = false;
+
+  const nextButton = bar.querySelector("[data-player-next]");
+  if (nextButton) nextButton.disabled = !(current || playback.queue.length);
+
+  const shuffleButton = bar.querySelector("[data-player-shuffle]");
+  if (shuffleButton) shuffleButton.disabled = !playback.queue.length;
+
+  const repeatButton = bar.querySelector("[data-player-repeat]");
+  if (repeatButton) {
+    const repeatLabel = getRepeatLabel();
+    repeatButton.dataset.repeatMode = playback.repeatMode;
+    repeatButton.setAttribute("aria-label", repeatLabel);
+    repeatButton.setAttribute("title", repeatLabel);
+    repeatButton.setAttribute("aria-pressed", "true");
+
+    const repeatControl = repeatButton.closest(".repeat-control");
+    let repeatPill = repeatControl?.querySelector(".repeat-mode-pill") || null;
+    const repeatModeText = playback.repeatMode === "track" ? "1" : "";
+    if (repeatModeText) {
+      if (!repeatPill && repeatControl) {
+        repeatPill = document.createElement("span");
+        repeatPill.className = "repeat-mode-pill";
+        repeatPill.setAttribute("aria-hidden", "true");
+        repeatControl.append(repeatPill);
       }
-      ${playback.queue.length > queuePreview.length ? `<span class="queue-more">+${playback.queue.length - queuePreview.length} more</span>` : ""}
-    </div>
-  `;
+      if (repeatPill) repeatPill.textContent = repeatModeText;
+    } else {
+      repeatPill?.remove();
+    }
+  }
+
+  const queuePanel = bar.querySelector(".queue-panel");
+  if (queuePanel) {
+    queuePanel.classList.toggle("is-open", queueOpen);
+    const queueLabel = queuePanel.querySelector(".queue-label");
+    if (queueLabel) queueLabel.textContent = `Queue ${playback.queue.length}`;
+    const clearQueueButton = queuePanel.querySelector("[data-clear-queue]");
+    if (clearQueueButton) clearQueueButton.disabled = !playback.queue.length;
+
+    if (queueOpen) {
+      const holder = document.createElement("div");
+      holder.innerHTML = queueEditorMarkup().trim();
+      const nextEditor = holder.firstElementChild;
+      const currentEditor = queuePanel.querySelector(".queue-editor");
+      if (nextEditor && currentEditor) currentEditor.replaceWith(nextEditor);
+      else if (nextEditor) queuePanel.append(nextEditor);
+    } else {
+      queuePanel.querySelector(".queue-editor")?.remove();
+    }
+  }
+
+  syncPlayerPlaybackControls();
+  syncPlayerTime();
+  schedulePlayerTitleMarquee();
+  persistPlaybackState();
+  return true;
+}
+
+function renderPlayer() {
+  if (syncExistingNativePlayer()) return;
+  renderPlayerFull();
+}
+
+function syncPlayerPlaybackControls() {
+  const toggle = playerRoot.querySelector("[data-player-toggle]");
+  if (!toggle) return;
+
+  const label = playback.isPlaying ? "Pause" : "Play";
+  toggle.setAttribute("aria-label", label);
+  toggle.setAttribute("title", label);
+  const icon = toggle.querySelector("span");
+  if (icon) icon.innerHTML = playback.isPlaying ? icons.pause : icons.play;
+  persistPlaybackState();
+}
+
+let playerTitleMarqueeFrame = 0;
+let playerTitleMarqueeRetry = 0;
+let playerTitleMarqueeAnimation = null;
+
+/* Exact wheel-parallel text boundary.
+   This does NOT resize, reposition, or vertically align the text box.
+   It only extends the existing metadata clipping surface far enough to overlap
+   the wheel, then clips the pixels to the LEFT of a circle that is concentric
+   with the REAL wheel and exactly 5px larger in radius. */
+function updatePlayerWheelTextBoundary() {
+  const bar = playerRoot.querySelector(".player-bar");
+  const meta = bar?.querySelector(".player-meta");
+  const wheel = bar?.querySelector(".player-controls.ipod-wheel, .ipod-wheel");
+  if (!bar || !meta || !wheel) return;
+
+  // Clear every older boundary implementation first. The title/subtitle layout
+  // and the wheel position are intentionally left untouched.
+  for (const property of [
+    "width",
+    "max-width",
+    "clip-path",
+    "-webkit-clip-path",
+    "mask-image",
+    "-webkit-mask-image",
+    "mask-size",
+    "-webkit-mask-size",
+    "mask-repeat",
+    "-webkit-mask-repeat"
+  ]) {
+    meta.style.removeProperty(property);
+  }
+
+  const wheelRect = wheel.getBoundingClientRect();
+  const naturalMetaRect = meta.getBoundingClientRect();
+  if (!wheelRect.width || !wheelRect.height || !naturalMetaRect.width || !naturalMetaRect.height) return;
+
+  const clearance = 5;
+  // The wheel is circular, so use its actual rendered diameter. Adding 5px to
+  // the radius creates a truly parallel circle exactly 5px outside the wheel.
+  const wheelRadius = Math.min(wheelRect.width, wheelRect.height) / 2;
+  const boundaryRadius = wheelRadius + clearance;
+  const wheelCenterX = wheelRect.left + wheelRect.width / 2;
+  const wheelCenterY = wheelRect.top + wheelRect.height / 2;
+
+  // The metadata paint surface has to reach under the wheel so the mask can
+  // cut the text against the real circle. This does not move the grid track,
+  // the wheel, or the text's left/top position.
+  const neededWidth = Math.max(
+    naturalMetaRect.width,
+    wheelRect.right + clearance - naturalMetaRect.left
+  );
+  meta.style.setProperty("width", `${neededWidth}px`, "important");
+  meta.style.setProperty("max-width", "none", "important");
+
+  const rect = meta.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+
+  const centerX = wheelCenterX - rect.left;
+  const centerY = wheelCenterY - rect.top;
+
+  // IMPORTANT: this is a real circular alpha mask, not a polygon. Everything
+  // inside the 5px-expanded concentric wheel circle is transparent; everything
+  // outside stays fully visible. The boundary itself has no visible stroke.
+  const feather = 0.35;
+  const mask = `radial-gradient(circle ${boundaryRadius.toFixed(3)}px at ${centerX.toFixed(3)}px ${centerY.toFixed(3)}px, transparent 0 ${(boundaryRadius - feather).toFixed(3)}px, rgba(0,0,0,1) ${(boundaryRadius + feather).toFixed(3)}px 100%)`;
+
+  meta.style.setProperty("-webkit-mask-image", mask, "important");
+  meta.style.setProperty("mask-image", mask, "important");
+  meta.style.setProperty("-webkit-mask-repeat", "no-repeat", "important");
+  meta.style.setProperty("mask-repeat", "no-repeat", "important");
+  meta.style.setProperty("-webkit-mask-size", "100% 100%", "important");
+  meta.style.setProperty("mask-size", "100% 100%", "important");
+}
+
+function playerTitleVisibleWidth(title) {
+  const meta = title?.closest(".player-meta");
+  const wheel = playerRoot.querySelector(".player-controls.ipod-wheel, .ipod-wheel");
+  if (!title || !meta || !wheel) {
+    return Math.ceil(title?.getBoundingClientRect().width || title?.clientWidth || 0);
+  }
+
+  const titleRect = title.getBoundingClientRect();
+  const wheelRect = wheel.getBoundingClientRect();
+  if (!wheelRect.width || !wheelRect.height) {
+    return Math.ceil(titleRect.width || title.clientWidth || 0);
+  }
+
+  const clearance = 5;
+  const radius = Math.max(wheelRect.width, wheelRect.height) / 2 + clearance;
+  const wheelCenterX = wheelRect.left + wheelRect.width / 2;
+  const wheelCenterY = wheelRect.top + wheelRect.height / 2;
+  const titleCenterY = titleRect.top + titleRect.height / 2;
+  const dy = Math.min(radius, Math.abs(titleCenterY - wheelCenterY));
+  const halfChord = Math.sqrt(Math.max(0, radius * radius - dy * dy));
+  const boundaryX = wheelCenterX - halfChord;
+
+  return Math.max(0, Math.ceil(boundaryX - titleRect.left));
+}
+
+function updatePlayerTitleMarquee() {
+  updatePlayerWheelTextBoundary();
+  const title = playerRoot.querySelector("[data-player-title]");
+  if (!title) return;
+  const text = title.querySelector("span") || title;
+  const previousAnimation = text.style.animation;
+  const previousTransform = text.style.transform;
+  text.style.animation = "none";
+  text.style.transform = "translateX(0)";
+  const availableWidth = playerTitleVisibleWidth(title);
+  const textRange = document.createRange();
+  textRange.selectNodeContents(text);
+  const textWidth = Math.ceil(textRange.getBoundingClientRect().width || text.scrollWidth);
+  const overflowDistance = Math.ceil(Math.max(0, textWidth - availableWidth));
+  const overflowing = availableWidth > 0 && overflowDistance > 3;
+  const offset = `${-overflowDistance}px`;
+  text.style.animation = previousAnimation;
+  text.style.transform = previousTransform;
+
+  if (availableWidth <= 0 || textWidth <= 0) {
+    window.clearTimeout(playerTitleMarqueeRetry);
+    playerTitleMarqueeRetry = window.setTimeout(() => {
+      playerTitleMarqueeRetry = 0;
+      schedulePlayerTitleMarquee();
+    }, 180);
+    return;
+  }
+
+  if (title.style.getPropertyValue("--player-title-offset") !== offset) {
+    title.style.setProperty("--player-title-offset", offset);
+  }
+
+  if (title.classList.contains("is-overflowing") !== overflowing) {
+    title.classList.toggle("is-overflowing", overflowing);
+  }
+
+  playerTitleMarqueeAnimation?.cancel();
+  playerTitleMarqueeAnimation = null;
+
+  if (overflowing && typeof text.animate === "function") {
+    const gap = 48;
+    const travel = textWidth + gap;
+    const travelDuration = (travel / 20) * 1000;
+    const pauseDuration = 3000;
+    const totalDuration = pauseDuration + travelDuration;
+    const pauseOffset = pauseDuration / totalDuration;
+
+    title.style.setProperty("--player-title-gap", `${gap}px`);
+    playerTitleMarqueeAnimation = text.animate(
+      [
+        { transform: "translate3d(0, 0, 0)", offset: 0 },
+        { transform: "translate3d(0, 0, 0)", offset: pauseOffset },
+        { transform: `translate3d(${-travel}px, 0, 0)`, offset: 1 }
+      ],
+      { duration: totalDuration, iterations: Infinity, easing: "linear" }
+    );
+  }
+}
+
+function schedulePlayerTitleMarquee() {
+  if (playerTitleMarqueeFrame) return;
+  playerTitleMarqueeFrame = requestAnimationFrame(() => {
+    playerTitleMarqueeFrame = requestAnimationFrame(() => {
+      playerTitleMarqueeFrame = 0;
+      updatePlayerTitleMarquee();
+    });
+  });
 }
 
 function queueEditorMarkup() {
@@ -2764,12 +3461,7 @@ const playerDragGesture = {
 let suppressNextPlayerExpandClick = false;
 
 function renderPlayerWithTransition() {
-  playerRoot.classList.add("is-player-switching");
   renderPlayer();
-  window.clearTimeout(playerTransitionTimer);
-  playerTransitionTimer = window.setTimeout(() => {
-    playerRoot.classList.remove("is-player-switching");
-  }, 180);
 }
 
 function toggleQueuePanel() {
@@ -2867,7 +3559,8 @@ function shuffleCurrentQueue() {
   if (!playback.queue.length) return;
   playback.queue = shuffleTracks(playback.queue);
   syncRepeatQueueWithEditedQueue();
-  renderPlayer();
+  if (playback.queueOpen) renderPlayer();
+  else persistPlaybackState();
   updateTrackStates();
   void nativeSyncQueueOnly();
 }
@@ -3099,6 +3792,7 @@ function updateUploadPreview() {
 async function submitUpload(form) {
   const formData = new FormData(form);
   const title = String(formData.get("title") || "").trim();
+  const artist = String(formData.get("artist") || "").trim();
   const kind = String(formData.get("kind") || "Single");
   const releaseYear = String(formData.get("releaseYear") || new Date().getFullYear());
   const submitButton = form.querySelector("[type='submit']");
@@ -3106,7 +3800,7 @@ async function submitUpload(form) {
   if (!title) return;
 
   if (submitButton) submitButton.disabled = true;
-  if (status) status.textContent = isStandaloneApp() ? "Saving on this device..." : "Preparing temporary release...";
+  if (status) status.textContent = "Saving on this device...";
 
   try {
     const id = `${slugify(title) || "release"}-${Date.now()}`;
@@ -3133,10 +3827,12 @@ async function submitUpload(form) {
       releaseDate: releaseYear,
       cover: coverFile ? URL.createObjectURL(coverFile) : defaultCover,
       accent: "#f7f7f2",
+      artist,
+      primaryArtist: artist,
       tracks: displayTracks
     };
 
-    if (isStandaloneApp()) {
+    if ("indexedDB" in window) {
       await saveReleaseOnDevice({
         id,
         title,
@@ -3145,11 +3841,14 @@ async function submitUpload(form) {
         releaseDate: releaseYear,
         coverFile: coverFile || null,
         accent: "#f7f7f2",
+        artist,
+        primaryArtist: artist,
         tracks: storedTracks
       });
     }
 
     databaseReleases = [...databaseReleases.filter((item) => item.id !== release.id), release];
+    saveRouteScrollPosition(renderedRouteKey || currentRouteKey());
     history.pushState({}, "", "/");
     window.location.hash = `/album/${release.id}`;
   } catch (error) {
@@ -3181,7 +3880,7 @@ function slugify(value) {
 
 async function loadDatabaseReleases() {
   databaseReleases = Array.isArray(uploadedReleases) ? uploadedReleases : [];
-  if (isStandaloneApp()) {
+  if ("indexedDB" in window) {
     const storedReleases = await loadReleasesFromDevice();
     databaseReleases = [...databaseReleases, ...storedReleases];
   }
@@ -3234,10 +3933,14 @@ async function loadReleasesFromDevice() {
     releaseDate: release.releaseDate,
     cover: release.coverFile ? URL.createObjectURL(release.coverFile) : defaultCover,
     accent: release.accent || "#f7f7f2",
+    artist: release.artist || "",
+    primaryArtist: release.primaryArtist || release.artist || "",
     tracks: release.tracks.length
       ? release.tracks.map((track) => ({
           number: track.number,
           title: track.title,
+          artist: track.artist || release.artist || "",
+          primaryArtist: track.primaryArtist || track.artist || release.primaryArtist || release.artist || "",
           src: URL.createObjectURL(track.file)
         }))
       : [{ number: 1, title: "No audio files", locked: true }]
@@ -3297,7 +4000,9 @@ function syncPlayerTime() {
   const range = playerRoot.querySelector("[data-player-progress]");
   if (time) time.textContent = formatTime(playback.time);
   if (duration) duration.textContent = formatTime(playback.duration);
-  if (range && document.activeElement !== range) range.value = String(getProgressValue());
+  if (range && !seekGesture.active && document.activeElement !== range) {
+    range.value = String(getProgressValue());
+  }
 }
 
 function formatTime(value) {
@@ -3326,10 +4031,26 @@ function render() {
 
   if (routeChanged) {
     renderedRouteKey = nextRouteKey;
-    if (routeVideoSlug) scrollVideoIntoView(routeVideoSlug);
-    else scrollPageToTop();
+    if (!restoreRouteScrollPosition(nextRouteKey)) {
+      if (routeVideoSlug) scrollVideoIntoView(routeVideoSlug);
+      else scrollPageToTop();
+    }
   }
 }
+
+/* Capture route-link navigation before the hash/path changes so the exact
+   current position is available when any page is revisited. This also covers
+   album cards, menu links, player-cover links, video links and back links. */
+document.addEventListener(
+  "click",
+  (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest?.("a[href]");
+    if (!isInternalRouteLink(link)) return;
+    saveRouteScrollPosition(renderedRouteKey || currentRouteKey());
+  },
+  true
+);
 
 app.addEventListener("click", (event) => {
   const installButton = event.target.closest("[data-install-app]");
@@ -3407,7 +4128,7 @@ app.addEventListener("click", (event) => {
   const playlistTrackButton = event.target.closest("[data-playlist-track]");
   if (playlistTrackButton) {
     const track = trackLookup.get(playlistTrackButton.dataset.playlistTrack);
-    if (track) addTrackToActivePlaylist(track);
+    if (track) openPlaylistPicker(track);
     return;
   }
 
@@ -3441,6 +4162,27 @@ app.addEventListener("click", (event) => {
     return;
   }
 
+  const openFavoritesButton = event.target.closest("[data-open-favorites]");
+  if (openFavoritesButton) {
+    state.playlistPageMode = "favorites";
+    render();
+    updateTrackStates();
+    return;
+  }
+
+  const openPlaylistButton = event.target.closest("[data-open-playlist]");
+  if (openPlaylistButton) {
+    const playlist = playlists.find((item) => item.id === openPlaylistButton.dataset.openPlaylist);
+    if (playlist) {
+      activePlaylistId = playlist.id;
+      state.playlistPageMode = "playlist";
+      savePlaylists();
+      render();
+      updateTrackStates();
+    }
+    return;
+  }
+
   const playFavoriteButton = event.target.closest("[data-play-favorite-index]");
   if (playFavoriteButton) {
     playFavoriteItem(Number(playFavoriteButton.dataset.playFavoriteIndex));
@@ -3466,6 +4208,26 @@ app.addEventListener("click", (event) => {
   const randomizePlaylistButton = event.target.closest("[data-randomize-playlist]");
   if (randomizePlaylistButton) {
     playPlaylist(randomizePlaylistButton.dataset.randomizePlaylist, { randomize: true });
+    return;
+  }
+
+  const editPlaylistButton = event.target.closest("[data-edit-playlist]");
+  if (editPlaylistButton) {
+    openPlaylistEditor(editPlaylistButton.dataset.editPlaylist);
+    return;
+  }
+
+  const savePlaylistEditButton = event.target.closest("[data-save-playlist-edit]");
+  if (savePlaylistEditButton) {
+    savePlaylistEdit(savePlaylistEditButton.dataset.savePlaylistEdit);
+    return;
+  }
+
+  const resetPlaylistCoverButton = event.target.closest("[data-reset-playlist-cover]");
+  if (resetPlaylistCoverButton) {
+    pendingPlaylistCoverData = "__DEFAULT__";
+    const preview = document.querySelector("[data-playlist-edit-preview]");
+    if (preview) preview.src = defaultPlaylistCover;
     return;
   }
 
@@ -3501,6 +4263,38 @@ app.addEventListener("click", (event) => {
   updateTrackStates();
 });
 
+document.addEventListener("click", (event) => {
+  const playlistEditorBackdrop = event.target.matches?.(".playlist-edit-backdrop");
+  const closePlaylistEditorButton = event.target.closest?.("[data-close-playlist-editor]");
+
+  if (playlistEditorBackdrop || closePlaylistEditorButton) {
+    closePlaylistEditor();
+    return;
+  }
+
+  const explicitClose = event.target.closest("[data-close-playlist-picker]");
+  const backdropClick = event.target.matches(".playlist-picker-backdrop");
+
+  if (backdropClick) {
+    closePlaylistPicker();
+    return;
+  }
+
+  if (explicitClose && !explicitClose.classList.contains("playlist-picker-backdrop")) {
+    closePlaylistPicker();
+    return;
+  }
+
+  const playlistOption = event.target.closest("[data-add-to-playlist]");
+  if (!playlistOption) return;
+
+  const track = trackLookup.get(state.playlistPickerTrackKey);
+  if (track) {
+    toggleTrackInPlaylist(track, playlistOption.dataset.addToPlaylist);
+    renderPlaylistPicker();
+  }
+});
+
 app.addEventListener("input", (event) => {
   if (event.target.id === "search") {
     const cursor = event.target.selectionStart;
@@ -3516,7 +4310,32 @@ app.addEventListener("input", (event) => {
   if (event.target.closest("[data-add-form]")) updateUploadPreview();
 });
 
+app.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && event.target.matches?.("[data-playlist-edit-name]")) {
+    event.preventDefault();
+    const playlist = playlists.find((item) => item.id === state.playlistEditId);
+    if (playlist) savePlaylistEdit(playlist.id);
+    return;
+  }
+
+  if (event.key === "Enter" && event.target.matches?.("[data-playlist-title]")) {
+    event.preventDefault();
+    const value = event.target.value;
+    createPlaylist(value || "New Playlist");
+    event.target.value = "";
+    render();
+    updateTrackStates();
+  }
+});
+
 app.addEventListener("change", (event) => {
+  const playlistCoverInput = event.target.closest("[data-playlist-edit-cover]");
+  if (playlistCoverInput) {
+    const file = playlistCoverInput.files?.[0];
+    if (file) void previewPlaylistCoverFile(file);
+    return;
+  }
+
   const yearFilter = event.target.closest("[data-year-filter]");
   if (yearFilter) {
     const year = String(yearFilter.dataset.yearFilter || "");
@@ -3570,9 +4389,22 @@ app.addEventListener("submit", (event) => {
   void submitUpload(form);
 });
 
+document.addEventListener("focusin", (event) => {
+  const editable = event.target.matches?.("input, textarea, select, [contenteditable='true']");
+  const mobileKeyboardSurface =
+    window.innerWidth <= 820 ||
+    Boolean(window.matchMedia?.("(hover: none), (pointer: coarse)")?.matches);
+  if (!editable || !playback.queueOpen || !mobileKeyboardSurface) return;
+
+  playback.queueOpen = false;
+  renderPlayerWithTransition();
+});
+
 playerRoot.addEventListener("pointerdown", (event) => {
   const handle = event.target.closest("[data-player-expand]");
   if (!handle || event.pointerType === "mouse") return;
+
+  event.preventDefault();
 
   playerDragGesture.active = true;
   playerDragGesture.pointerId = event.pointerId;
@@ -3586,8 +4418,98 @@ playerRoot.addEventListener("pointerdown", (event) => {
   }
 });
 
+playerRoot.addEventListener("dragstart", (event) => {
+  if (event.target.closest?.("[data-player-expand]")) event.preventDefault();
+});
+
 playerRoot.addEventListener("pointerup", finishPlayerDragGesture);
 playerRoot.addEventListener("pointercancel", finishPlayerDragGesture);
+
+function updateSeekPreview(slider) {
+  if (!slider || !playback.duration) return;
+  seekGesture.targetTime = (Number(slider.value) / 1000) * playback.duration;
+  playback.time = seekGesture.targetTime;
+  syncPlayerTime();
+}
+
+function updateSeekFromPointer(event) {
+  if (!seekGesture.active || !seekGesture.slider) return;
+  if (event?.pointerId != null && seekGesture.pointerId != null && event.pointerId !== seekGesture.pointerId) return;
+
+  const rect = seekGesture.slider.getBoundingClientRect();
+  if (rect.width <= 0) return;
+  const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+  seekGesture.slider.value = String(Math.round(ratio * 1000));
+  updateSeekPreview(seekGesture.slider);
+}
+
+function beginSeekGesture(event) {
+  const slider = event.target.closest?.("[data-player-progress]");
+  if (!slider || !playback.current || !playback.duration || seekGesture.active) return;
+
+  seekGesture.active = true;
+  seekGesture.pointerId = event.pointerId ?? null;
+  seekGesture.wasPlaying = playback.isPlaying;
+  seekGesture.targetTime = playback.time;
+  seekGesture.slider = slider;
+  seekGesture.pausePromise = Promise.resolve();
+
+  try {
+    slider.setPointerCapture?.(event.pointerId);
+  } catch {
+    // Pointer capture is not available for every synthetic WebView event.
+  }
+
+  updateSeekFromPointer(event);
+
+  if (seekGesture.wasPlaying) {
+    playback.isPlaying = false;
+    if (isNativePlaybackAvailable()) {
+      const archiveMedia = getArchiveMediaPlugin();
+      if (archiveMedia && typeof archiveMedia.pause === "function") {
+        seekGesture.pausePromise = archiveMedia.pause().catch(() => {});
+      }
+    } else {
+      playback.audio.pause();
+    }
+  }
+}
+
+async function finishSeekGesture(event) {
+  if (!seekGesture.active) return;
+  if (event?.pointerId != null && seekGesture.pointerId != null && event.pointerId !== seekGesture.pointerId) return;
+
+  const shouldResume = seekGesture.wasPlaying;
+  const targetTime = seekGesture.targetTime;
+  const pausePromise = seekGesture.pausePromise;
+  seekGesture.active = false;
+  seekGesture.pointerId = null;
+  seekGesture.wasPlaying = false;
+  seekGesture.slider = null;
+
+  playback.time = targetTime;
+  if (isNativePlaybackAvailable()) {
+    await pausePromise;
+    await nativeSeek(targetTime, shouldResume);
+    playback.isPlaying = shouldResume;
+    if (shouldResume) startNativeStateTimer();
+    renderPlayer();
+    updateTrackStates();
+  } else {
+    playback.audio.currentTime = targetTime;
+    if (shouldResume) startAudio();
+    else renderPlayer();
+  }
+
+  syncPlayerTime();
+  updateMediaSession();
+  persistPlaybackState();
+}
+
+playerRoot.addEventListener("pointerdown", beginSeekGesture);
+window.addEventListener("pointermove", updateSeekFromPointer);
+window.addEventListener("pointerup", finishSeekGesture);
+window.addEventListener("pointercancel", finishSeekGesture);
 
 playerRoot.addEventListener("click", (event) => {
   if (event.target.closest("[data-player-expand]")) {
@@ -3619,9 +4541,7 @@ playerRoot.addEventListener("click", (event) => {
   }
 
   if (event.target.closest("[data-player-playlist]")) {
-    if (playback.current) addTrackToActivePlaylist(playback.current);
-    renderPlayer();
-    updateTrackStates();
+    if (playback.current) openPlaylistPicker(playback.current);
     return;
   }
 
@@ -3705,18 +4625,15 @@ playerRoot.addEventListener("input", (event) => {
   }
 
   if (!event.target.matches("[data-player-progress]") || !playback.duration) return;
+  updateSeekPreview(event.target);
 
-  playback.time = (Number(event.target.value) / 1000) * playback.duration;
-
-  if (isNativePlaybackAvailable()) {
-    void nativeSeek(playback.time);
-  } else {
-    playback.audio.currentTime = playback.time;
+  if (!seekGesture.active) {
+    const targetTime = playback.time;
+    if (isNativePlaybackAvailable()) void nativeSeek(targetTime);
+    else playback.audio.currentTime = targetTime;
+    updateMediaSession();
+    persistPlaybackState();
   }
-
-  syncPlayerTime();
-  updateMediaSession();
-  persistPlaybackState();
 });
 
 playback.audio.addEventListener("loadedmetadata", () => {
@@ -3762,6 +4679,7 @@ playback.audio.addEventListener("play", () => {
 
 playback.audio.addEventListener("pause", () => {
   if (isNativePlaybackAvailable()) return;
+  if (seekGesture.active) return;
   if (playback.ignorePause) return;
   playback.isPlaying = false;
   renderPlayer();
@@ -3784,13 +4702,103 @@ window.addEventListener("pagehide", () => {
   }
 });
 
+
+/* Keep the page fixed when a touch starts in the empty space beside or below
+   the floating player. This extends the player's no-page-scroll zone to the
+   full viewport width from the player's top edge down, without intercepting
+   touches that start inside the player itself. */
+let blockOutsidePlayerBandScroll = false;
+
+function isTouchBesideOrBelowPlayer(touch, target) {
+  const bar = playerRoot.querySelector(".player-bar");
+  if (!bar || !touch) return false;
+  if (target instanceof Node && playerRoot.contains(target)) return false;
+
+  const rect = bar.getBoundingClientRect();
+  const x = touch.clientX;
+  const y = touch.clientY;
+
+  if (y < rect.top) return false;
+
+  const besidePlayer = y <= rect.bottom && (x < rect.left || x > rect.right);
+  const belowPlayer = y > rect.bottom;
+  return besidePlayer || belowPlayer;
+}
+
+document.addEventListener(
+  "touchstart",
+  (event) => {
+    const touch = event.touches?.[0] || event.changedTouches?.[0];
+    blockOutsidePlayerBandScroll = isTouchBesideOrBelowPlayer(touch, event.target);
+  },
+  { passive: true, capture: true }
+);
+
+document.addEventListener(
+  "touchmove",
+  (event) => {
+    if (!blockOutsidePlayerBandScroll) return;
+    event.preventDefault();
+  },
+  { passive: false, capture: true }
+);
+
+const clearOutsidePlayerBandScroll = () => {
+  blockOutsidePlayerBandScroll = false;
+};
+
+document.addEventListener("touchend", clearOutsidePlayerBandScroll, { passive: true, capture: true });
+document.addEventListener("touchcancel", clearOutsidePlayerBandScroll, { passive: true, capture: true });
+
+/* Restore the player's own no-page-scroll behavior without removing the
+   existing left/right/below-player scroll guard above. Queue scrolling and
+   native range dragging remain available. */
+let blockInsidePlayerScroll = false;
+
+function shouldBlockInsidePlayerScroll(target) {
+  if (!(target instanceof Element)) return false;
+  if (!playerRoot.contains(target)) return false;
+  if (target.closest(".queue-editor")) return false;
+  if (target.closest("[data-player-progress], [data-player-volume]")) return false;
+  return Boolean(target.closest(".player-bar, [data-player-expand]"));
+}
+
+playerRoot.addEventListener(
+  "touchstart",
+  (event) => {
+    blockInsidePlayerScroll = shouldBlockInsidePlayerScroll(event.target);
+  },
+  { passive: true, capture: true }
+);
+
+document.addEventListener(
+  "touchmove",
+  (event) => {
+    if (!blockInsidePlayerScroll) return;
+    event.preventDefault();
+  },
+  { passive: false, capture: true }
+);
+
+const clearInsidePlayerScroll = () => {
+  blockInsidePlayerScroll = false;
+};
+
+document.addEventListener("touchend", clearInsidePlayerScroll, { passive: true, capture: true });
+document.addEventListener("touchcancel", clearInsidePlayerScroll, { passive: true, capture: true });
+
 window.addEventListener("hashchange", render);
 window.addEventListener("popstate", render);
-window.addEventListener("scroll", scheduleCenteredReleaseFocusUpdate, { passive: true });
+window.addEventListener("scroll", () => {
+  scheduleRouteScrollPositionSave();
+  scheduleCenteredReleaseFocusUpdate();
+}, { passive: true });
 window.addEventListener("resize", () => {
   scheduleFitReleaseTitles();
+  schedulePlayerTitleMarquee();
   scheduleCenteredReleaseFocusUpdate();
 });
+
 restorePlaybackState();
 render();
 if (document.fonts?.ready) {
@@ -3801,6 +4809,8 @@ void hydrateNativePlaybackState();
 void consumePendingNativeAction();
 void finishStartupLoading(startupDataReady);
 
+
+/* Generic PWA install helper retained from the local-music edition. */
 let deferredInstallPrompt = null;
 
 function isStandaloneApp() {
@@ -3816,8 +4826,8 @@ function showInstallGuide() {
 
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const message = isIOS
-    ? "In Safari unten auf Teilen tippen und danach „Zum Home-Bildschirm“ auswählen."
-    : "Öffne das Browser-Menü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“.";
+    ? "In Safari unten auf Teilen tippen und danach â€žZum Home-Bildschirmâ€œ auswÃ¤hlen."
+    : "Ã–ffne das Browser-MenÃ¼ und wÃ¤hle â€žApp installierenâ€œ oder â€žZum Startbildschirm hinzufÃ¼genâ€œ.";
 
   document.body.insertAdjacentHTML("beforeend", `
     <aside class="install-guide" data-install-guide role="dialog" aria-modal="true" aria-labelledby="install-guide-title">
@@ -3863,3 +4873,6 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/sw.js").catch(() => undefined);
   });
 }
+
+
+
