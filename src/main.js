@@ -3169,9 +3169,9 @@ function updatePlayerWheelTextBoundary() {
   const wheel = bar?.querySelector(".player-controls.ipod-wheel, .ipod-wheel");
   if (!bar || !meta || !wheel) return;
 
-  // Clear every older boundary implementation first. The title/subtitle layout
-  // and the wheel position are intentionally left untouched.
-  for (const property of [
+  // EXPANDED_PLAYER_METADATA_BOUNDARY_FIX
+  // Clear every older boundary implementation first.
+  const boundaryProperties = [
     "width",
     "max-width",
     "clip-path",
@@ -3182,9 +3182,15 @@ function updatePlayerWheelTextBoundary() {
     "-webkit-mask-size",
     "mask-repeat",
     "-webkit-mask-repeat"
-  ]) {
+  ];
+
+  for (const property of boundaryProperties) {
     meta.style.removeProperty(property);
   }
+
+  // The expanded desktop player has its own grid column for metadata.
+  // Do not extend/mask it toward the wheel.
+  if (bar.classList.contains("queue-open")) return;
 
   const wheelRect = wheel.getBoundingClientRect();
   const naturalMetaRect = meta.getBoundingClientRect();
@@ -3233,6 +3239,17 @@ function playerTitleVisibleWidth(title) {
   const wheel = playerRoot.querySelector(".player-controls.ipod-wheel, .ipod-wheel");
   if (!title || !meta || !wheel) {
     return Math.ceil(title?.getBoundingClientRect().width || title?.clientWidth || 0);
+  }
+
+  const playerBar = title.closest(".player-bar");
+  if (playerBar?.classList.contains("queue-open")) {
+    const main = title.closest(".player-main");
+    return Math.ceil(
+      main?.clientWidth ||
+      title.getBoundingClientRect().width ||
+      title.clientWidth ||
+      0
+    );
   }
 
   const titleRect = title.getBoundingClientRect();

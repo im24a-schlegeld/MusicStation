@@ -22,7 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="stylesheet" href="/src/styles.css?v=20260816-203101" />
         <link rel="stylesheet" href="/src/stability.css?v=20260816-2125" />
         <link rel="stylesheet" href="/src/ui-modern.css?v=20260816-204025" />
-          <link rel="stylesheet" href="/src/final-fixes.css?v=20260816-214609" />
+          <link rel="stylesheet" href="/src/final-fixes.css?v=20260816-215834" />
 </head>
       <body className="launch-active">{children}</body>
     </html>
