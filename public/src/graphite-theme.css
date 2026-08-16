@@ -1,0 +1,286 @@
+/* =========================================================
+   GRAPHITE METAL THEME
+   Visual/material layer only.
+   Scoped to #app so the floating player remains untouched.
+   No layout geometry is changed in this file.
+   ========================================================= */
+
+:root {
+  --gm-page: #08090a;
+  --gm-page-deep: #050607;
+  --gm-surface: #111315;
+  --gm-surface-2: #171a1d;
+  --gm-surface-3: #1d2124;
+  --gm-control: #0c0e10;
+  --gm-line: rgba(194, 202, 207, 0.24);
+  --gm-line-strong: rgba(224, 230, 233, 0.48);
+  --gm-text: #f0f2f3;
+  --gm-muted: #8b9296;
+  --gm-highlight: rgba(255, 255, 255, 0.065);
+  --gm-shadow: rgba(0, 0, 0, 0.58);
+  --gm-brushed:
+    linear-gradient(112deg, transparent 0 20%, rgba(255,255,255,.026) 39%, transparent 58%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(180deg, #171a1c 0%, #0e1012 52%, #090a0b 100%);
+  --gm-brushed-raised:
+    linear-gradient(112deg, transparent 0 18%, rgba(255,255,255,.038) 40%, transparent 62%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, rgba(0,0,0,.018) 1px 3px),
+    linear-gradient(180deg, #202428 0%, #15181b 48%, #0d0f11 100%);
+  --gm-control-satin:
+    linear-gradient(180deg, rgba(255,255,255,.055), transparent 44%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px),
+    #0b0d0f;
+}
+
+/* Page material: graphite sheet with a subtle technical cross-grain. */
+html,
+body:not(.release-open) {
+  background-color: var(--gm-page) !important;
+  background-image:
+    radial-gradient(circle at 18% 0%, rgba(255,255,255,.035), transparent 31%),
+    radial-gradient(circle at 84% 100%, rgba(125,139,148,.028), transparent 34%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.012) 0 1px, transparent 1px 10px),
+    repeating-linear-gradient(45deg, rgba(0,0,0,.12) 0 1px, transparent 1px 13px),
+    linear-gradient(180deg, #0b0d0f 0%, #070809 55%, #050607 100%) !important;
+}
+
+body:not(.release-open)::before {
+  background:
+    linear-gradient(90deg, transparent 0 14%, rgba(255,255,255,.018) 34%, transparent 56%),
+    repeating-linear-gradient(0deg, rgba(204,214,219,.018) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.10) 0 1px, transparent 1px 7px) !important;
+  opacity: .92 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Loading screen follows the same material system. */
+.app-launch-screen {
+  background-color: var(--gm-page-deep) !important;
+  background-image:
+    radial-gradient(circle at 50% 42%, rgba(255,255,255,.045), transparent 28%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.013) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, #111315 0%, #070809 70%, #040506 100%) !important;
+}
+
+/* Primary graphite panels. */
+#app .library-header,
+#app .toolbar,
+#app .release-actions,
+#app .song-results,
+#app .playlist-panel,
+#app .favorites-panel,
+#app .spotify-playlist-shell,
+#app .album-top,
+#app .album-hero,
+#app .videos-hero,
+#app .video-card,
+#app .countdown-panel,
+#app .section-heading,
+#app .add-form,
+#app .playlist-title-box,
+#app .release-timeline,
+#app .timeline-item,
+#app .playlist-edit-dialog,
+#app .playlist-picker,
+#app .burger-menu {
+  background-color: var(--gm-surface) !important;
+  background-image: var(--gm-brushed) !important;
+  background-repeat: repeat !important;
+  background-size: auto !important;
+  border-color: var(--gm-line) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.055),
+    inset 0 -1px 0 rgba(0,0,0,.55),
+    0 14px 34px rgba(0,0,0,.16) !important;
+}
+
+/* Whole page wrappers are not material cards; keep the graphite sheet visible. */
+#app .playlists-page,
+#app .spotify-playlists-page,
+#app .add-page,
+#app .timeline-page {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* Cards and rows use a darker satin sheet so hierarchy stays clear. */
+#app .album-card,
+#app .track-row,
+#app .song-result,
+#app .playlist-row,
+#app .playlist-list-item,
+#app .playlist-browser-item,
+#app .spotify-track-row,
+#app .playlist-show-all,
+#app .queue-editor-row,
+#app .video-card {
+  background-color: var(--gm-surface-2) !important;
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.032), transparent 32%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.010) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #181b1e 0%, #0d0f11 100%) !important;
+  border-color: var(--gm-line) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    0 8px 20px rgba(0,0,0,.16) !important;
+}
+
+/* Search, filters, sorting and form controls: dark satin metal, not chrome. */
+#app .search,
+#app .filter,
+#app .sort-control select,
+#app .themed-sort-toggle,
+#app .themed-sort-menu,
+#app .themed-sort-option,
+#app .year-filter,
+#app .year-option,
+#app .playlist-name-field input,
+#app .playlist-select-field select,
+#app .playlist-create input,
+#app .add-form input,
+#app .add-form select,
+#app .kind-picker-options label > span,
+#app .upload-preview {
+  background-color: var(--gm-control) !important;
+  background-image: var(--gm-control-satin) !important;
+  border-color: var(--gm-line) !important;
+  color: var(--gm-text) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.038),
+    inset 0 -1px 0 rgba(0,0,0,.64) !important;
+}
+
+/* Buttons keep their existing geometry while switching material. */
+#app .thin-button,
+#app .back-link,
+#app .link-button,
+#app .burger-button,
+#app .search-clear-button,
+#app .playlist-create button,
+#app .playlist-browser button,
+#app .playlist-picker-option,
+#app .playlist-edit-dialog button {
+  background-color: var(--gm-control) !important;
+  background-image: var(--gm-control-satin) !important;
+  border-color: var(--gm-line) !important;
+  color: var(--gm-text) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.045),
+    inset 0 -1px 0 rgba(0,0,0,.66) !important;
+}
+
+/* Active/selected state: brighter titanium edge, still monochrome. */
+#app .filter.is-active,
+#app .year-option.is-active,
+#app .year-option:has(input:checked),
+#app .themed-sort-option.is-active,
+#app .playlist-browser-item.is-active,
+#app .playlist-list-item.is-active,
+#app [aria-pressed="true"]:not(.icon-button) {
+  background-color: var(--gm-surface-3) !important;
+  background-image: var(--gm-brushed-raised) !important;
+  border-color: var(--gm-line-strong) !important;
+  color: #ffffff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.085),
+    inset 0 0 0 1px rgba(255,255,255,.018) !important;
+}
+
+/* Secondary copy and small labels move from warm gray to cool graphite gray. */
+#app .sort-control span,
+#app .playlist-name-field span,
+#app .playlist-select-field span,
+#app .add-form label > span,
+#app .kind-picker legend,
+#app .card-meta,
+#app .playlist-row-copy small,
+#app .playlist-empty,
+#app .release-primary-artist,
+#app .album-stats,
+#app .eyebrow {
+  color: var(--gm-muted) !important;
+}
+
+/* Borders throughout the non-player UI become titanium-gray. */
+#app .search,
+#app .filter,
+#app .album-card,
+#app .track-row,
+#app .song-result,
+#app .playlist-row,
+#app .playlist-list-item,
+#app .playlist-browser-item,
+#app .spotify-track-row,
+#app .playlist-show-all,
+#app .release-actions,
+#app .playlist-panel,
+#app .favorites-panel,
+#app .spotify-playlist-shell,
+#app .playlist-browser,
+#app .playlist-title-box,
+#app .add-form,
+#app .album-top,
+#app .library-header,
+#app .toolbar {
+  border-color: var(--gm-line) !important;
+}
+
+/* Cover art/media stays untouched; only its surrounding frame changes. */
+#app .album-art,
+#app .playlist-list-art,
+#app .playlist-browser-art,
+#app .spotify-playlist-art,
+#app .spotify-track-cover,
+#app .playlist-edit-cover,
+#app .video-thumb {
+  box-shadow:
+    0 0 0 1px rgba(213,220,224,.16),
+    0 8px 22px rgba(0,0,0,.32) !important;
+}
+
+/* Desktop pointer polish only. Touch/mobile receives no sticky hover material. */
+@media (hover:hover) and (pointer:fine) {
+  #app .filter:hover:not(.is-active),
+  #app .thin-button:hover,
+  #app .back-link:hover,
+  #app .link-button:hover,
+  #app .burger-button:hover,
+  #app .burger-menu a:hover,
+  #app .burger-menu button:hover,
+  #app .themed-sort-toggle:hover,
+  #app .themed-sort-option:hover:not(.is-active),
+  #app .year-option:hover:not(.is-active),
+  #app .playlist-browser-item:hover:not(.is-active),
+  #app .playlist-list-item:hover:not(.is-active) {
+    background-color: var(--gm-surface-3) !important;
+    background-image: var(--gm-brushed-raised) !important;
+    border-color: var(--gm-line-strong) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.075),
+      0 9px 22px rgba(0,0,0,.20) !important;
+  }
+}
+
+@media (hover:none), (pointer:coarse) {
+  #app .filter:hover:not(.is-active),
+  #app .thin-button:hover,
+  #app .back-link:hover,
+  #app .link-button:hover,
+  #app .burger-button:hover,
+  #app .burger-menu a:hover,
+  #app .burger-menu button:hover,
+  #app .themed-sort-toggle:hover,
+  #app .themed-sort-option:hover:not(.is-active),
+  #app .year-option:hover:not(.is-active),
+  #app .playlist-browser-item:hover:not(.is-active),
+  #app .playlist-list-item:hover:not(.is-active) {
+    background-color: var(--gm-control) !important;
+    background-image: var(--gm-control-satin) !important;
+    border-color: var(--gm-line) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.038),
+      inset 0 -1px 0 rgba(0,0,0,.64) !important;
+  }
+}
