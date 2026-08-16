@@ -19,3 +19,10 @@ desktop.ini
 
 .vercel
 .env*
+*.bak-*
+/cleanup-v5-temp/
+/layout-v4-temp/
+/playlist-v6-temp/
+/*.zip
+/node_modules/
+/.next/

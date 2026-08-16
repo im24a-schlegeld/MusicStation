@@ -1,4 +1,4 @@
-﻿// Generic local-music edition: start with no bundled catalog.
+// Generic local-music edition: start with no bundled catalog.
 const albums = [];
 const uploadedReleases = [];
 
@@ -133,8 +133,16 @@ async function finishStartupLoading(dataReady) {
 
   const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   const removalDelay = reduceMotion ? 240 : 620;
+  const launchRoute = window.location.hash.replace(/^#\/?/, "") || window.location.pathname.replace(/^\/+|\/+$/g, "");
+  const isMainLaunch = !launchRoute || launchRoute === "/";
 
-  positionLaunchLogoExit();
+  launchScreen.classList.toggle("is-home-exit", isMainLaunch);
+  launchScreen.classList.toggle("is-subpage-exit", !isMainLaunch);
+
+  if (isMainLaunch) {
+    positionLaunchLogoExit();
+  }
+
   launchScreen.classList.add("is-exiting");
   launchScreen.setAttribute("aria-hidden", "true");
 
@@ -1964,7 +1972,8 @@ function albumCard(album) {
 }
 
 function renderLibrary() {
-  const releases = filteredAlbums();
+  const queryActive = Boolean(state.query.trim());
+  const releases = queryActive ? [] : filteredAlbums();
   const songs = matchingSongs();
   document.title = "archive";
   clearCountdown();
@@ -1979,10 +1988,13 @@ function renderLibrary() {
     </header>
 
     <section class="toolbar" aria-label="Library controls">
-      <label class="search">
-        <span>Search</span>
-        <input id="search" type="search" value="${escapeHtml(state.query)}" placeholder="Release or track" autocomplete="off" />
-      </label>
+      <div class="search${state.query ? " has-query" : ""}">
+        <span class="search-icon" aria-hidden="true">${icons.search}</span>
+        <input id="search" type="search" value="${escapeHtml(state.query)}" placeholder="Release or track" autocomplete="off" aria-label="Search releases and tracks" />
+        <button class="search-clear-button" type="button" data-clear-search aria-label="Clear search" title="Clear search" ${state.query ? "" : "hidden"}>
+          <span aria-hidden="true">${icons.remove}</span>
+        </button>
+      </div>
       <div class="filters" role="group" aria-label="Release type">
         ${filterButton("all", "All releases")}
         ${filterButton("album", "Albums")}
@@ -1994,12 +2006,15 @@ function renderLibrary() {
       ${yearFilterMarkup()}
     </section>
 
-    ${state.query.trim() ? songResultsMarkup(songs) : ""}
-    ${categoryPlaybackActions()}
+    ${queryActive ? songResultsMarkup(songs) : categoryPlaybackActions()}
 
-    <main class="album-grid" aria-label="Release library">
-      ${releases.map(albumCard).join("")}
-    </main>
+    ${
+      queryActive
+        ? ""
+        : `<main class="album-grid" aria-label="Release library">
+            ${releases.map(albumCard).join("")}
+          </main>`
+    }
   `);
 
   scheduleFitReleaseTitles();
@@ -2078,19 +2093,30 @@ function sortControlMarkup() {
     ["added", "Added recently"],
     ["title", "A-Z"]
   ];
+  const activeLabel = options.find(([value]) => value === state.sortMode)?.[1] || options[0][1];
 
   return `
-    <label class="sort-control">
-      <span>Sort</span>
-      <select data-sort-mode aria-label="Sort releases">
-        ${options
-          .map(
-            ([value, label]) =>
-              `<option value="${value}" ${state.sortMode === value ? "selected" : ""}>${label}</option>`
-          )
-          .join("")}
-      </select>
-    </label>
+    <div class="sort-control custom-sort-control" data-sort-control>
+      <span class="sort-control-label">Sort</span>
+      <div class="themed-sort-select">
+        <button class="themed-sort-toggle" type="button" data-sort-toggle aria-expanded="false" aria-haspopup="listbox" aria-label="Sort releases: ${escapeHtml(activeLabel)}">
+          <span class="themed-sort-current">${escapeHtml(activeLabel)}</span>
+          <span class="themed-sort-chevron" aria-hidden="true"></span>
+        </button>
+        <div class="themed-sort-menu" data-sort-menu role="listbox" aria-label="Sort releases" hidden>
+          ${options
+            .map(
+              ([value, label]) => `
+                <button class="themed-sort-option${state.sortMode === value ? " is-active" : ""}" type="button" data-sort-option="${value}" role="option" aria-selected="${state.sortMode === value}">
+                  <span>${escapeHtml(label)}</span>
+                  <span class="themed-sort-indicator" aria-hidden="true"></span>
+                </button>
+              `
+            )
+            .join("")}
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -2682,9 +2708,7 @@ function renderPlaylistsPage() {
     </header>
 
     <main class="playlists-page spotify-playlists-page">
-      <div class="playlist-page-head">
-        <h1>Playlists</h1>
-      </div>
+      <section class="videos-hero playlist-page-head playlist-title-box"><h1>Playlists</h1></section>
       ${playlistSectionMarkup()}
     </main>
   `);
@@ -4053,9 +4077,44 @@ document.addEventListener(
 );
 
 app.addEventListener("click", (event) => {
+  const sortOptionButton = event.target.closest("[data-sort-option]");
+  if (sortOptionButton) {
+    const value = String(sortOptionButton.dataset.sortOption || "");
+    if (["newest", "oldest", "added", "title"].includes(value)) {
+      state.sortMode = value;
+      localStorage.setItem(sortModeStorageKey, state.sortMode);
+      renderLibrary();
+      updateTrackStates();
+    }
+    return;
+  }
+
+  const sortToggleButton = event.target.closest("[data-sort-toggle]");
+  if (sortToggleButton) {
+    const control = sortToggleButton.closest("[data-sort-control]");
+    const menu = control?.querySelector("[data-sort-menu]");
+    if (!menu) return;
+    const opening = menu.hidden;
+    menu.hidden = !opening;
+    sortToggleButton.setAttribute("aria-expanded", String(opening));
+    return;
+  }
+
+  const clearSearchButton = event.target.closest("[data-clear-search]");
+  if (clearSearchButton) {
+    state.query = "";
+    renderLibrary();
+    updateTrackStates();
+    app.querySelector("#search")?.focus({ preventScroll: true });
+    return;
+  }
+
   const installButton = event.target.closest("[data-install-app]");
   if (installButton) {
     state.menuOpen = false;
+    const headerMenu = installButton.closest(".header-menu");
+    headerMenu?.querySelector(".burger-menu")?.classList.remove("is-open");
+    headerMenu?.querySelector("[data-menu-toggle]")?.setAttribute("aria-expanded", "false");
     void requestAppInstall();
     return;
   }
@@ -4063,8 +4122,11 @@ app.addEventListener("click", (event) => {
   const menuToggle = event.target.closest("[data-menu-toggle]");
   if (menuToggle) {
     state.menuOpen = !state.menuOpen;
-    renderLibrary();
-    updateTrackStates();
+    const headerMenu = menuToggle.closest(".header-menu");
+    const burgerMenu = headerMenu?.querySelector(".burger-menu");
+    menuToggle.setAttribute("aria-expanded", String(state.menuOpen));
+    menuToggle.setAttribute("aria-label", state.menuOpen ? "Close menu" : "Open menu");
+    burgerMenu?.classList.toggle("is-open", state.menuOpen);
     return;
   }
 
@@ -4264,6 +4326,22 @@ app.addEventListener("click", (event) => {
 });
 
 document.addEventListener("click", (event) => {
+  const sortControl = app.querySelector("[data-sort-control]");
+  if (sortControl && !sortControl.contains(event.target)) {
+    const sortMenu = sortControl.querySelector("[data-sort-menu]");
+    const sortToggle = sortControl.querySelector("[data-sort-toggle]");
+    if (sortMenu && !sortMenu.hidden) sortMenu.hidden = true;
+    sortToggle?.setAttribute("aria-expanded", "false");
+  }
+
+  const headerMenu = app.querySelector(".header-menu");
+  if (state.menuOpen && headerMenu && !headerMenu.contains(event.target)) {
+    state.menuOpen = false;
+    headerMenu.querySelector(".burger-menu")?.classList.remove("is-open");
+    headerMenu.querySelector("[data-menu-toggle]")?.setAttribute("aria-expanded", "false");
+    return;
+  }
+
   const playlistEditorBackdrop = event.target.matches?.(".playlist-edit-backdrop");
   const closePlaylistEditorButton = event.target.closest?.("[data-close-playlist-editor]");
 
@@ -4301,7 +4379,7 @@ app.addEventListener("input", (event) => {
     state.query = event.target.value;
     renderLibrary();
     const input = app.querySelector("#search");
-    input?.focus();
+    input?.focus({ preventScroll: true });
     input?.setSelectionRange(cursor, cursor);
     updateTrackStates();
     return;
@@ -4311,6 +4389,26 @@ app.addEventListener("input", (event) => {
 });
 
 app.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    const sortControl = app.querySelector("[data-sort-control]");
+    const sortMenu = sortControl?.querySelector("[data-sort-menu]");
+    if (sortMenu && !sortMenu.hidden) {
+      sortMenu.hidden = true;
+      sortControl?.querySelector("[data-sort-toggle]")?.setAttribute("aria-expanded", "false");
+      sortControl?.querySelector("[data-sort-toggle]")?.focus({ preventScroll: true });
+      return;
+    }
+
+    if (state.menuOpen) {
+      state.menuOpen = false;
+      const menuToggle = app.querySelector("[data-menu-toggle]");
+      menuToggle?.closest(".header-menu")?.querySelector(".burger-menu")?.classList.remove("is-open");
+      menuToggle?.setAttribute("aria-expanded", "false");
+      menuToggle?.focus({ preventScroll: true });
+      return;
+    }
+  }
+
   if (event.key === "Enter" && event.target.matches?.("[data-playlist-edit-name]")) {
     event.preventDefault();
     const playlist = playlists.find((item) => item.id === state.playlistEditId);
