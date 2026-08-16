@@ -1023,3 +1023,444 @@ html body #app .app-shell > .add-page .add-form.add-form-clean {
   }
 }
 /* END EXTENDED COVER SQUARE FINAL */
+
+
+/* DESKTOP EXTENDED PLAYER CANONICAL V3 START */
+@media (min-width: 901px) {
+
+  html body.player-queue-open .player-root > .player-bar.queue-open {
+    --desktop-player-height: clamp(520px, 62vh, 640px);
+
+    --desktop-top-h: clamp(150px, 18vh, 176px);
+    --desktop-volume-h: 40px;
+    --desktop-top-gap: 12px;
+
+    --desktop-wheel-size: clamp(124px, 14vh, 146px);
+    --desktop-progress-h: 34px;
+
+    display: grid !important;
+
+    grid-template-columns:
+      var(--desktop-top-h)
+      minmax(0, 1fr)
+      var(--desktop-top-h) !important;
+
+    /*
+      row 1 + row 2 + ONE row-gap = desktop-top-h.
+      Cover spans row 1+2, therefore its grid area is exactly square.
+    */
+    grid-template-rows:
+      calc(
+        var(--desktop-top-h)
+        - var(--desktop-volume-h)
+        - var(--desktop-top-gap)
+      )
+      var(--desktop-volume-h)
+      minmax(0, 1fr)
+      var(--desktop-progress-h) !important;
+
+    grid-template-areas:
+      "cover main controls"
+      "cover volume controls"
+      "queue queue queue"
+      "progress progress progress" !important;
+
+    width: 100% !important;
+
+    height: var(--desktop-player-height) !important;
+    min-height: var(--desktop-player-height) !important;
+    max-height: min(72dvh, 660px) !important;
+
+    column-gap: 18px !important;
+    row-gap: var(--desktop-top-gap) !important;
+
+    padding: 18px 18px 12px !important;
+
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+
+  /* -------------------------------------------------------
+     COVER
+     Size is derived from the available top section.
+     No independent hard-coded cover dimension.
+     ------------------------------------------------------- */
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-cover-wrap {
+
+    grid-area: cover !important;
+
+    width: 100% !important;
+    height: 100% !important;
+
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    max-width: none !important;
+    max-height: none !important;
+
+    aspect-ratio: 1 / 1 !important;
+
+    align-self: stretch !important;
+    justify-self: stretch !important;
+
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-cover-link,
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-cover,
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-cover.placeholder {
+
+    display: block !important;
+
+    width: 100% !important;
+    height: 100% !important;
+
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    max-width: 100% !important;
+    max-height: 100% !important;
+
+    aspect-ratio: 1 / 1 !important;
+
+    margin: 0 !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  img.player-cover {
+
+    object-fit: cover !important;
+    object-position: center !important;
+  }
+
+
+  /* -------------------------------------------------------
+     METADATA
+     No wheel mask, no artificial width, no old title offset.
+     ------------------------------------------------------- */
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-main {
+
+    grid-area: main !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    height: 100% !important;
+
+    align-self: stretch !important;
+    justify-self: stretch !important;
+
+    margin: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-meta {
+
+    display: flex !important;
+    flex-direction: column !important;
+
+    justify-content: center !important;
+    align-items: flex-start !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    height: auto !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+
+    text-align: left !important;
+
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    clip-path: none !important;
+
+    overflow: hidden !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-title {
+
+    display: block !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    margin: 0 !important;
+
+    font-size: clamp(1.5rem, 1.65vw, 1.9rem) !important;
+    line-height: 1.04 !important;
+
+    overflow: hidden !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-title > span {
+
+    display: block !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    transform: none !important;
+
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-meta > span {
+
+    display: block !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+
+    margin-top: 4px !important;
+
+    font-size: clamp(.95rem, 1vw, 1.1rem) !important;
+    line-height: 1.1 !important;
+
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+
+
+  /* -------------------------------------------------------
+     VOLUME
+     ------------------------------------------------------- */
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-volume {
+
+    grid-area: volume !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    width: min(100%, 360px) !important;
+    min-width: 0 !important;
+    max-width: 360px !important;
+
+    height: 100% !important;
+
+    align-self: stretch !important;
+    justify-self: start !important;
+
+    gap: 12px !important;
+    margin: 0 !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-volume input[type="range"] {
+
+    width: 100% !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+    align-self: center !important;
+  }
+
+
+  /* -------------------------------------------------------
+     WHEEL
+     Right column remains same width as cover column,
+     but wheel itself is smaller and centered in it.
+     ------------------------------------------------------- */
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-controls,
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-controls.ipod-wheel,
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .ipod-wheel {
+
+    grid-area: controls !important;
+
+    --wheel-size: var(--desktop-wheel-size) !important;
+
+    width: var(--desktop-wheel-size) !important;
+    min-width: var(--desktop-wheel-size) !important;
+    max-width: var(--desktop-wheel-size) !important;
+
+    height: var(--desktop-wheel-size) !important;
+    min-height: var(--desktop-wheel-size) !important;
+    max-height: var(--desktop-wheel-size) !important;
+
+    align-self: center !important;
+    justify-self: center !important;
+
+    margin: 0 !important;
+    transform: none !important;
+
+    overflow: hidden !important;
+    contain: layout paint !important;
+
+    --wheel-control-size:
+      clamp(23px, calc(var(--wheel-size) * .18), 29px) !important;
+
+    --wheel-side-inset:
+      clamp(8px, calc(var(--wheel-size) * .09), 13px) !important;
+
+    --wheel-pole-inset:
+      clamp(7px, calc(var(--wheel-size) * .075), 11px) !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-controls .player-toggle,
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-controls .wheel-toggle {
+
+    width: clamp(38px, calc(var(--wheel-size) * .29), 44px) !important;
+    min-width: clamp(38px, calc(var(--wheel-size) * .29), 44px) !important;
+
+    height: clamp(38px, calc(var(--wheel-size) * .29), 44px) !important;
+    min-height: clamp(38px, calc(var(--wheel-size) * .29), 44px) !important;
+  }
+
+
+  /* -------------------------------------------------------
+     QUEUE
+     Gets every remaining pixel of player height.
+     ------------------------------------------------------- */
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .queue-panel {
+
+    grid-area: queue !important;
+
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    height: 100% !important;
+
+    min-width: 0 !important;
+    min-height: 0 !important;
+
+    max-width: none !important;
+    max-height: none !important;
+
+    align-self: stretch !important;
+    justify-self: stretch !important;
+
+    margin: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .queue-editor {
+
+    width: 100% !important;
+    height: 100% !important;
+
+    min-height: 0 !important;
+    max-height: none !important;
+
+    overflow-y: auto !important;
+  }
+
+
+  /* -------------------------------------------------------
+     TIMELINE
+     ------------------------------------------------------- */
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-progress {
+
+    grid-area: progress !important;
+
+    position: static !important;
+
+    display: grid !important;
+
+    grid-template-columns:
+      46px
+      minmax(0, 1fr)
+      46px !important;
+
+    align-items: center !important;
+    justify-items: stretch !important;
+
+    width: min(100%, 1260px) !important;
+    max-width: 1260px !important;
+
+    height: var(--desktop-progress-h) !important;
+    min-height: var(--desktop-progress-h) !important;
+
+    gap: 10px !important;
+
+    margin: 0 auto !important;
+    padding: 0 clamp(10px, 3vw, 46px) !important;
+
+    box-sizing: border-box !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-progress > * {
+
+    align-self: center !important;
+  }
+
+  html body.player-queue-open
+  .player-root > .player-bar.queue-open
+  .player-progress input[type="range"] {
+
+    display: block !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+
+    margin: 0 !important;
+  }
+}
+/* DESKTOP EXTENDED PLAYER CANONICAL V3 END */
