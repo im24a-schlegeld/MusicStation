@@ -1,4 +1,4 @@
-﻿/* Final mobile stability overrides. Loaded after styles.css on purpose. */
+/* Final mobile stability overrides. Loaded after styles.css on purpose. */
 
 body:not(.release-open)::before,
 body:not(.release-open)::after,
@@ -2983,7 +2983,449 @@ body {
 }
 
 
+/* TARGET PLAYER HOTFIX V4 - MOBILE/TABLET ONLY */
+@media (max-width: 900px) {
+  /* Drag-Linie bleibt relativ fest ganz oben. */
+  html body .player-root > .player-bar > .player-drag-toggle,
+  html body .player-root > .player-bar > .player-drag-toggle:hover,
+  html body .player-root > .player-bar > .player-drag-toggle:active,
+  html body .player-root > .player-bar > .player-drag-toggle:focus,
+  html body .player-root > .player-bar > .player-drag-toggle:focus-visible,
+  html body .player-root.is-player-dragging > .player-bar > .player-drag-toggle,
+  html body .player-root > .player-bar.queue-open > .player-drag-toggle,
+  html body.player-queue-open .player-root > .player-bar.queue-open > .player-drag-toggle,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle:hover,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle:active,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle:focus,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle:focus-visible,
+  html.native-app body .player-root.is-player-dragging > .player-bar > .player-drag-toggle,
+  html.native-app body .player-root > .player-bar.queue-open > .player-drag-toggle {
+    top: 0 !important;
+    width: 124px !important;
+    min-width: 124px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+  }
+
+  html body .player-root > .player-bar > .player-drag-toggle span:first-child,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle span:first-child {
+    top: 7px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 4px !important;
+    min-height: 4px !important;
+  }
+
+  /* Extended player neu beruhigen: kleineres Wheel, kein Overlap. */
+  .player-root .player-bar.queue-open {
+    --expanded-wheel-size: clamp(112px, 14vw, 136px) !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) var(--expanded-wheel-size) !important;
+    grid-template-areas:
+      "cover main controls"
+      "volume volume controls"
+      "queue queue queue"
+      "progress progress progress" !important;
+    column-gap: clamp(10px, 1.4vw, 18px) !important;
+    row-gap: 8px !important;
+    padding: 18px clamp(12px, 1.6vw, 18px) 12px !important;
+    overflow: hidden !important;
+  }
+
+  .player-root .player-bar.queue-open .player-cover-wrap {
+    grid-area: cover !important;
+    align-self: start !important;
+    justify-self: start !important;
+  }
+
+  .player-root .player-bar.queue-open .player-cover-link,
+  .player-root .player-bar.queue-open .player-cover,
+  .player-root .player-bar.queue-open .player-cover.placeholder {
+    width: clamp(48px, 7vw, 60px) !important;
+    min-width: clamp(48px, 7vw, 60px) !important;
+    height: clamp(48px, 7vw, 60px) !important;
+    min-height: clamp(48px, 7vw, 60px) !important;
+  }
+
+  .player-root .player-bar.queue-open .player-main,
+  body.player-queue-open .player-root .player-bar.queue-open .player-main {
+    grid-area: main !important;
+    align-self: start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .player-root .player-bar.queue-open .player-meta {
+    min-width: 0 !important;
+  }
+
+  .player-root .player-bar.queue-open .player-volume {
+    grid-area: volume !important;
+    width: min(100%, 260px) !important;
+    margin-top: 0 !important;
+  }
+
+  .player-root .player-bar.queue-open .queue-panel {
+    grid-area: queue !important;
+    margin-top: 0 !important;
+    max-height: min(28vh, 220px) !important;
+  }
+
+  .player-root .player-bar.queue-open .player-controls,
+  .player-root .player-bar.queue-open .ipod-wheel,
+  body.player-queue-open .player-root .player-bar.queue-open .player-controls,
+  body.player-queue-open .player-root .player-bar.queue-open .ipod-wheel {
+    grid-area: controls !important;
+    --wheel-size: var(--expanded-wheel-size) !important;
+    width: var(--expanded-wheel-size) !important;
+    min-width: var(--expanded-wheel-size) !important;
+    height: var(--expanded-wheel-size) !important;
+    min-height: var(--expanded-wheel-size) !important;
+    align-self: start !important;
+    justify-self: end !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    contain: layout paint !important;
+    --wheel-control-size: clamp(22px, calc(var(--wheel-size, 124px) * 0.2), 28px) !important;
+    --wheel-side-inset: clamp(7px, calc(var(--wheel-size, 124px) * 0.1), 12px) !important;
+    --wheel-pole-inset: clamp(5px, calc(var(--wheel-size, 124px) * 0.085), 10px) !important;
+  }
+
+  body .player-root .player-bar.queue-open .player-controls .player-toggle,
+  body .player-root .player-bar.queue-open .player-controls .wheel-toggle,
+  body.player-queue-open .player-root .player-bar.queue-open .player-controls .player-toggle,
+  body.player-queue-open .player-root .player-bar.queue-open .player-controls .wheel-toggle {
+    width: clamp(34px, calc(var(--wheel-size, 124px) * 0.3), 42px) !important;
+    min-width: clamp(34px, calc(var(--wheel-size, 124px) * 0.3), 42px) !important;
+    height: clamp(34px, calc(var(--wheel-size, 124px) * 0.3), 42px) !important;
+    min-height: clamp(34px, calc(var(--wheel-size, 124px) * 0.3), 42px) !important;
+  }
+
+  /* Timeline im extended player wie im minimized player. */
+  .player-root .player-bar.queue-open .player-progress,
+  body.player-queue-open .player-root .player-bar.queue-open .player-progress {
+    width: min(100%, 1260px) !important;
+    max-width: 1260px !important;
+    margin: 0 auto !important;
+    padding: 0 clamp(10px, 3vw, 46px) !important;
+    grid-template-columns: 46px minmax(0, 1fr) 46px !important;
+    gap: 10px !important;
+  }
+
+  .player-root .player-bar.queue-open .player-progress input[type="range"],
+  body.player-queue-open .player-root .player-bar.queue-open .player-progress input[type="range"] {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  @media (max-width: 760px) {
+    .player-root .player-bar.queue-open,
+    body.player-queue-open .player-root .player-bar.queue-open {
+      --expanded-wheel-size: clamp(96px, 29vw, 118px) !important;
+      grid-template-columns: auto minmax(0, 1fr) var(--expanded-wheel-size) !important;
+      padding: 18px 9px 10px !important;
+      column-gap: 8px !important;
+      row-gap: 7px !important;
+    }
+
+    .player-root .player-bar.queue-open .player-progress,
+    body.player-queue-open .player-root .player-bar.queue-open .player-progress {
+      grid-template-columns: 38px minmax(0, 1fr) 38px !important;
+      gap: 6px !important;
+      padding-inline: 8px !important;
+    }
+
+    .player-root .player-bar.queue-open .player-volume {
+      width: 100% !important;
+      max-width: 190px !important;
+    }
+  }
+}
+/* END TARGET PLAYER HOTFIX V4 - MOBILE/TABLET ONLY */
+
+/* TARGET LAUNCH HOTFIX V4 START */
+/* Loading-Screen: Home slidt hoch, andere Pages zoomen nur. */
+.app-launch-screen.is-exiting.is-home-exit {
+  animation: archive-launch-reveal-soft 580ms cubic-bezier(0.33, 0, 0.12, 1) forwards !important;
+}
+
+.app-launch-screen.is-exiting.is-home-exit .app-launch-logo {
+  animation: archive-launch-logo-home-soft 540ms cubic-bezier(0.18, 0, 0.08, 1) forwards !important;
+}
+
+.app-launch-screen.is-exiting.is-subpage-exit {
+  animation: archive-launch-reveal-soft 420ms cubic-bezier(0.33, 0, 0.12, 1) forwards !important;
+}
+
+.app-launch-screen.is-exiting.is-subpage-exit .app-launch-logo {
+  animation: archive-launch-logo-zoom 420ms cubic-bezier(0.2, 0, 0.08, 1) forwards !important;
+}
+
+@keyframes archive-launch-logo-zoom {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    filter: blur(1px);
+    transform: translate3d(0, 0, 0) scale(1.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-launch-screen.is-exiting.is-subpage-exit,
+  .app-launch-screen.is-exiting.is-subpage-exit .app-launch-logo {
+    animation: archive-launch-reveal 220ms ease-out forwards !important;
+  }
+}
+/* TARGET LAUNCH HOTFIX V4 END */
+
+/* MODERN BADGE FONT FIX */
+html body .album-card .card-meta .badge,
+html body .badge {
+  font-family: "Audiowide", "Michroma", Arial, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  letter-spacing: .06em !important;
+}
+/* END MODERN BADGE FONT FIX */
 
 
+/* MODERN RELEASE META FONT FINAL */
+html body .album-card .card-meta,
+html body .album-card .card-meta *,
+html body .album-card .card-meta .badge,
+html body .badge {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, Helvetica, sans-serif !important;
+  font-style: normal !important;
+}
+
+html body .album-card .card-meta .badge,
+html body .badge {
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1 !important;
+  text-transform: uppercase !important;
+}
+/* END MODERN RELEASE META FONT FINAL */
 
 
+/* ADD PAGE MODERN FONT FINAL */
+html body .add-form label > span,
+html body .add-form .kind-picker legend,
+html body .add-form .kind-picker-options label > span,
+html body .add-form .kind-picker-options input + span {
+  font-family: "Audiowide", "Michroma", system-ui, sans-serif !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  letter-spacing: .07em !important;
+}
+
+html body .add-form .kind-picker-options label > span {
+  font-size: clamp(.72rem, 1vw, .86rem) !important;
+  text-transform: uppercase !important;
+}
+
+html body .add-form label > span,
+html body .add-form .kind-picker legend {
+  font-size: .72rem !important;
+  font-weight: 400 !important;
+  letter-spacing: .08em !important;
+}
+/* END ADD PAGE MODERN FONT FINAL */
+
+
+/* PLAYER HOTFIX V5 - MOBILE/TABLET ONLY */
+@media (max-width: 900px) {
+  /* Drag-Strich exakt wie minimized: horizontal, mittig, nicht schraeg. */
+  html body .player-root > .player-bar > .player-drag-toggle,
+  html body .player-root > .player-bar > .player-drag-toggle:hover,
+  html body .player-root > .player-bar > .player-drag-toggle:active,
+  html body .player-root > .player-bar > .player-drag-toggle:focus,
+  html body .player-root > .player-bar > .player-drag-toggle:focus-visible,
+  html body .player-root.is-player-dragging > .player-bar > .player-drag-toggle,
+  html body .player-root > .player-bar.queue-open > .player-drag-toggle,
+  html body.player-queue-open .player-root > .player-bar.queue-open > .player-drag-toggle,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle:hover,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle:active,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle:focus,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle:focus-visible,
+  html.native-app body .player-root.is-player-dragging > .player-bar > .player-drag-toggle,
+  html.native-app body .player-root > .player-bar.queue-open > .player-drag-toggle {
+    top: 0 !important;
+    bottom: auto !important;
+    left: 50% !important;
+    right: auto !important;
+    width: 124px !important;
+    min-width: 124px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    transform: translate3d(-50%, 0, 0) !important;
+    rotate: 0deg !important;
+  }
+
+  html body .player-root > .player-bar > .player-drag-toggle span,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle span {
+    display: none !important;
+    transform: none !important;
+    rotate: 0deg !important;
+  }
+
+  html body .player-root > .player-bar > .player-drag-toggle span:first-child,
+  html.native-app body .player-root > .player-bar > .player-drag-toggle span:first-child {
+    display: block !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 7px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 4px !important;
+    min-height: 4px !important;
+    margin: 0 !important;
+    transform: translateX(-50%) !important;
+    rotate: 0deg !important;
+    background: #a9a9a9 !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.42) !important;
+  }
+
+  /* Extended player: Cover groesser nutzen, Wheel kleiner und sauber ausgerichtet. */
+  .player-root .player-bar.queue-open,
+  body.player-queue-open .player-root .player-bar.queue-open {
+    --expanded-cover-size: clamp(58px, 8vw, 74px) !important;
+    --expanded-wheel-size: clamp(114px, 14vw, 132px) !important;
+    display: grid !important;
+    grid-template-columns: var(--expanded-cover-size) minmax(0, 1fr) var(--expanded-wheel-size) !important;
+    grid-template-areas:
+      "cover main controls"
+      "volume volume controls"
+      "queue queue queue"
+      "progress progress progress" !important;
+    column-gap: 14px !important;
+    row-gap: 8px !important;
+    padding: 18px 18px 18px 18px !important;
+    overflow: hidden !important;
+  }
+
+  .player-root .player-bar.queue-open .player-cover-wrap,
+  body.player-queue-open .player-root .player-bar.queue-open .player-cover-wrap {
+    grid-area: cover !important;
+    align-self: start !important;
+    justify-self: start !important;
+  }
+
+  .player-root .player-bar.queue-open .player-cover-wrap,
+  .player-root .player-bar.queue-open .player-cover-link,
+  .player-root .player-bar.queue-open .player-cover,
+  .player-root .player-bar.queue-open .player-cover.placeholder,
+  body.player-queue-open .player-root .player-bar.queue-open .player-cover-wrap,
+  body.player-queue-open .player-root .player-bar.queue-open .player-cover-link,
+  body.player-queue-open .player-root .player-bar.queue-open .player-cover,
+  body.player-queue-open .player-root .player-bar.queue-open .player-cover.placeholder {
+    width: var(--expanded-cover-size) !important;
+    min-width: var(--expanded-cover-size) !important;
+    height: var(--expanded-cover-size) !important;
+    min-height: var(--expanded-cover-size) !important;
+    max-width: var(--expanded-cover-size) !important;
+    max-height: var(--expanded-cover-size) !important;
+  }
+
+  .player-root .player-bar.queue-open .player-main,
+  body.player-queue-open .player-root .player-bar.queue-open .player-main {
+    grid-area: main !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    align-self: start !important;
+  }
+
+  .player-root .player-bar.queue-open .player-volume,
+  body.player-queue-open .player-root .player-bar.queue-open .player-volume {
+    grid-area: volume !important;
+    width: min(100%, 260px) !important;
+    margin: 0 !important;
+  }
+
+  /* Kreis: oben, unten, rechts gleichmaessig im Layout. */
+  .player-root .player-bar.queue-open .player-controls,
+  .player-root .player-bar.queue-open .ipod-wheel,
+  body.player-queue-open .player-root .player-bar.queue-open .player-controls,
+  body.player-queue-open .player-root .player-bar.queue-open .ipod-wheel {
+    grid-area: controls !important;
+    --wheel-size: var(--expanded-wheel-size) !important;
+    width: var(--expanded-wheel-size) !important;
+    min-width: var(--expanded-wheel-size) !important;
+    height: var(--expanded-wheel-size) !important;
+    min-height: var(--expanded-wheel-size) !important;
+    max-width: var(--expanded-wheel-size) !important;
+    max-height: var(--expanded-wheel-size) !important;
+    justify-self: end !important;
+    align-self: center !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    contain: layout paint !important;
+    --wheel-control-size: clamp(22px, calc(var(--wheel-size, 124px) * 0.2), 28px) !important;
+    --wheel-side-inset: clamp(7px, calc(var(--wheel-size, 124px) * 0.1), 12px) !important;
+    --wheel-pole-inset: clamp(5px, calc(var(--wheel-size, 124px) * 0.085), 10px) !important;
+  }
+
+  body .player-root .player-bar.queue-open .player-controls .player-toggle,
+  body .player-root .player-bar.queue-open .player-controls .wheel-toggle,
+  body.player-queue-open .player-root .player-bar.queue-open .player-controls .player-toggle,
+  body.player-queue-open .player-root .player-bar.queue-open .player-controls .wheel-toggle {
+    width: clamp(34px, calc(var(--wheel-size, 124px) * 0.3), 42px) !important;
+    min-width: clamp(34px, calc(var(--wheel-size, 124px) * 0.3), 42px) !important;
+    height: clamp(34px, calc(var(--wheel-size, 124px) * 0.3), 42px) !important;
+    min-height: clamp(34px, calc(var(--wheel-size, 124px) * 0.3), 42px) !important;
+  }
+
+  /* Extended timeline gleich Logik/Breite wie minimized. */
+  .player-root .player-bar.queue-open .player-progress,
+  body.player-queue-open .player-root .player-bar.queue-open .player-progress {
+    width: min(100%, 1260px) !important;
+    max-width: 1260px !important;
+    margin: 0 auto !important;
+    padding: 0 clamp(10px, 3vw, 46px) !important;
+    grid-template-columns: 46px minmax(0, 1fr) 46px !important;
+    gap: 10px !important;
+  }
+
+  .player-root .player-bar.queue-open .player-progress input[type="range"],
+  body.player-queue-open .player-root .player-bar.queue-open .player-progress input[type="range"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  @media (max-width: 760px) {
+    .player-root .player-bar.queue-open,
+    body.player-queue-open .player-root .player-bar.queue-open {
+      --expanded-cover-size: clamp(50px, 14vw, 62px) !important;
+      --expanded-wheel-size: clamp(98px, 29vw, 116px) !important;
+      grid-template-columns: var(--expanded-cover-size) minmax(0, 1fr) var(--expanded-wheel-size) !important;
+      padding: 18px 9px 10px !important;
+      column-gap: 8px !important;
+      row-gap: 7px !important;
+    }
+
+    .player-root .player-bar.queue-open .player-progress,
+    body.player-queue-open .player-root .player-bar.queue-open .player-progress {
+      grid-template-columns: 38px minmax(0, 1fr) 38px !important;
+      gap: 6px !important;
+      padding-inline: 8px !important;
+    }
+
+    .player-root .player-bar.queue-open .player-volume,
+    body.player-queue-open .player-root .player-bar.queue-open .player-volume {
+      width: 100% !important;
+      max-width: 190px !important;
+    }
+  }
+}
+/* END PLAYER HOTFIX V5 - MOBILE/TABLET ONLY */

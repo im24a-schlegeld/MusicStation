@@ -1,4 +1,4 @@
-﻿import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
   title: "Archive",
@@ -19,9 +19,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Michroma&display=swap" rel="stylesheet" />
-        <link rel="stylesheet" href="/src/styles.css?v=20260814-1735" />
-        <link rel="stylesheet" href="/src/stability.css?v=20260814-1735" />
-      </head>
+        <link rel="stylesheet" href="/src/styles.css?v=20260816-203101" />
+        <link rel="stylesheet" href="/src/stability.css?v=20260816-2125" />
+        <link rel="stylesheet" href="/src/ui-modern.css?v=20260816-204025" />
+          <link rel="stylesheet" href="/src/final-fixes.css?v=20260816-214609" />
+</head>
       <body className="launch-active">{children}</body>
     </html>
   );
