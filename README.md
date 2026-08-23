@@ -1,60 +1,58 @@
 # MusicStation
 
-MusicStation is a local-first music library and player built as an installable PWA. The current application combines a Next.js shell with an existing client-side JavaScript application, storing releases, artwork, audio and playlists locally on the device.
+MusicStation ist mein eigener Musikplayer für lokal gespeicherte Musik.
 
-## Live
+Ich habe das Projekt gemacht, weil ich ausprobieren wollte, wie eine eigene Anwendung zum Verwalten und Abspielen von Musik aufgebaut werden kann.
 
-https://music-station-omega.vercel.app/
+Releases, Cover und Audiodateien werden lokal auf dem jeweiligen Gerät gespeichert und nicht in eine zentrale Musikdatenbank hochgeladen.
 
-## Demo
+<p align="center">
+  <img src="docs/images/musicstation-local-app.jpg" alt="MusicStation – lokale App" width="420">
+</p>
 
-<video controls width="100%">
-  <source src="https://raw.githubusercontent.com/im24a-schlegeld/MusicStation/main/MusicStation_demo_compressed.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+<p align="center">
+  <img src="docs/images/musicstation-widget.jpg" alt="MusicStation – Player-Widget" width="700">
+</p>
 
-[Open the demo video](https://github.com/im24a-schlegeld/MusicStation/blob/main/MusicStation_demo_compressed.mp4)
+## Funktionen
 
-## Features
+- eigene Releases mit Cover und Audiodateien hinzufügen
+- lokale Musikbibliothek anzeigen
+- Releases durchsuchen und filtern
+- nach Album, EP, Single und unveröffentlichten Releases filtern
+- Releases nach Jahr filtern
+- Musik abspielen
+- Playlists erstellen und verwalten
+- als PWA installieren
+- Teile der Anwendung offline verwenden
 
-- Add releases with cover art and audio files
-- Browse a device-local library and open release details
-- Create and manage playlists
-- Install the app in supported browsers
-- Cache the application shell for offline use
+## Speicherung
 
-## Architecture
+MusicStation verwendet IndexedDB für die lokale Speicherung von Releases, Covern und Audiodateien.
 
-`app/page.tsx` provides the Next.js entry point and loads the client-side application from `public/src/main.js`. The existing JavaScript code is responsible for the music-library interface and browser APIs; the Next.js layer provides the application shell, metadata and routes.
+Es gibt keine zentrale Musikdatenbank und keine Synchronisation zwischen verschiedenen Geräten.
 
-## Local-First Storage
+Die hinzugefügte Musik bleibt auf dem jeweiligen Gerät beziehungsweise im verwendeten Browser oder in der installierten Anwendung.
 
-MusicStation uses IndexedDB for device-local releases, cover images and audio files. It has no server-side database, upload service or cloud media storage. In a normal browser tab, added releases are temporary and are cleared after a reload; installed PWA use persists them on that device.
+## Technik
 
-## PWA
+- Next.js
+- React
+- JavaScript
+- TypeScript
+- IndexedDB
+- Browser Audio APIs
+- Web App Manifest
+- Service Worker
 
-The web manifest and service worker allow supported browsers to install MusicStation. The service worker caches the application shell for offline use. Device-local music data remains separate in IndexedDB.
-
-## Limitations
-
-Music is stored only in the current browser or installed app. It is not synchronized between devices and is not backed up remotely.
-
-## Tech Stack
-
-- Next.js and React application shell
-- Client-side JavaScript application
-- IndexedDB and browser audio APIs
-- Web App Manifest and Service Worker
-- TypeScript for the Next.js shell
-
-## Local Development
+## Lokal starten
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Checks
+Projekt prüfen:
 
 ```bash
 npm run lint
