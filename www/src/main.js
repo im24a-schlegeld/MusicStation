@@ -1022,6 +1022,9 @@ function playlistPickerMarkup() {
 function renderPlaylistPicker() {
   document.querySelectorAll(".playlist-picker-backdrop").forEach((element) => element.remove());
   const markup = playlistPickerMarkup();
+  const pickerOpen = Boolean(markup);
+  document.documentElement.classList.toggle("musicstation-playlist-picker-open", pickerOpen);
+  document.body?.classList.toggle("musicstation-playlist-picker-open", pickerOpen);
   if (markup) document.body.insertAdjacentHTML("beforeend", markup);
 }
 
@@ -1125,7 +1128,7 @@ async function updateNativeMediaNotification(force = false) {
 
     await archiveMedia.update({
       title: track.title || "Unknown track",
-      album: track.albumTitle || "Archive",
+      album: track.albumTitle || "MusicStation",
       artist: trackNativeArtist(track),
       cover: track.cover || defaultCover,
       isPlaying: Boolean(playback.isPlaying),
@@ -1149,7 +1152,7 @@ function nativeTrackPayload(track) {
   return {
     key: track.key || "",
     title: track.title || "Unknown track",
-    albumTitle: track.albumTitle || "Archive",
+    albumTitle: track.albumTitle || "MusicStation",
     albumId: track.albumId || "",
     albumKind: track.albumKind || "",
     releaseYear: track.releaseYear || "",
@@ -1183,7 +1186,7 @@ function restoreTrackFromPayload(payload) {
   return {
     key: key || String(payload.src),
     title: payload.title || "Unknown track",
-    albumTitle: payload.albumTitle || "Archive",
+    albumTitle: payload.albumTitle || "MusicStation",
     albumId: payload.albumId || "",
     albumKind: payload.albumKind || "",
     releaseYear: payload.releaseYear || "",
@@ -1727,7 +1730,7 @@ function updateMediaSession(forceNative = false) {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: track.title || "Unknown track",
       artist: trackNativeArtist(track),
-      album: track.albumTitle || "Archive",
+      album: track.albumTitle || "MusicStation",
       artwork: [
         {
           src: absoluteAppUrl(track.cover || defaultCover),
@@ -1975,14 +1978,14 @@ function renderLibrary() {
   const queryActive = Boolean(state.query.trim());
   const releases = queryActive ? [] : filteredAlbums();
   const songs = matchingSongs();
-  document.title = "archive";
+  document.title = "MusicStation";
   clearCountdown();
   clearReleaseBackground();
 
   renderShell(`
     <header class="library-header">
       <div class="brand-lockup archive-gif-lockup">
-        <img class="archive-gif-logo" src="/assets/brand-logo.png" alt="archive" />
+        <img class="archive-gif-logo" src="/assets/brand-logo.png" alt="MusicStation" />
       </div>
       ${burgerMenuMarkup()}
     </header>
@@ -2002,8 +2005,8 @@ function renderLibrary() {
         ${filterButton("single", "Singles")}
         ${filterButton("unreleased", "Unreleased")}
       </div>
-      ${sortControlMarkup()}
       ${yearFilterMarkup()}
+      ${sortControlMarkup()}
     </section>
 
     ${queryActive ? songResultsMarkup(songs) : categoryPlaybackActions()}
@@ -2029,7 +2032,7 @@ function burgerMenuMarkup() {
         <span></span>
         <span></span>
       </button>
-      <nav class="burger-menu${state.menuOpen ? " is-open" : ""}" aria-label="Archive menu">
+      <nav class="burger-menu${state.menuOpen ? " is-open" : ""}" aria-label="MusicStation menu">
         <a href="#/add" data-menu-link>Add Music</a>
         <a href="#/playlists" data-menu-link>Playlists</a>
         <button type="button" data-install-app>Install App</button>
@@ -2097,7 +2100,7 @@ function sortControlMarkup() {
 
   return `
     <div class="sort-control custom-sort-control" data-sort-control>
-      <span class="sort-control-label">Sort</span>
+      <span class="sort-control-label" aria-hidden="true">⇅</span>
       <div class="themed-sort-select">
         <button class="themed-sort-toggle" type="button" data-sort-toggle aria-expanded="false" aria-haspopup="listbox" aria-label="Sort releases: ${escapeHtml(activeLabel)}">
           <span class="themed-sort-current">${escapeHtml(activeLabel)}</span>
@@ -2484,7 +2487,7 @@ function songResultRow(track) {
 }
 
 function renderAlbum(album) {
-  document.title = `${album.title} | archive`;
+  document.title = `${album.title} | MusicStation`;
   const visibleTracks = album.tracks.map((track) => (track.locked ? track : playableTrack(album, track)));
   const playableCount = visibleTracks.filter((track) => !track.locked).length;
   const kindLabel = releaseKindLabel(album.kind);
@@ -2613,7 +2616,7 @@ function scheduleFitReleaseTitles() {
 }
 
 function renderAddPage() {
-  document.title = "Add Music | archive";
+  document.title = "Add Music | MusicStation";
   clearCountdown();
   clearReleaseBackground();
 
@@ -2668,7 +2671,7 @@ function renderAddPage() {
 }
 
 function renderVideosPage() {
-  document.title = "Music Videos | archive";
+  document.title = "Music Videos | MusicStation";
   clearCountdown();
   clearReleaseBackground();
   const activeVideoSlug = getRouteVideoSlug();
@@ -2698,7 +2701,7 @@ function renderVideosPage() {
 }
 
 function renderPlaylistsPage() {
-  document.title = "Playlists | archive";
+  document.title = "Playlists | MusicStation";
   clearCountdown();
   clearReleaseBackground();
 
@@ -2858,7 +2861,7 @@ function trackVideoButton(track) {
 }
 
 function renderNotFound() {
-  document.title = "Not Found | archive";
+  document.title = "Not Found | MusicStation";
   clearCountdown();
   clearReleaseBackground();
   renderShell(`
@@ -4948,7 +4951,7 @@ function showInstallGuide() {
     <aside class="install-guide" data-install-guide role="dialog" aria-modal="true" aria-labelledby="install-guide-title">
       <div class="install-guide-card">
         <img src="/assets/brand-logo.png" alt="" />
-        <p class="eyebrow">Archive App</p>
+        <p class="eyebrow">MusicStation</p>
         <h2 id="install-guide-title">Auf dem Handy installieren</h2>
         <p>${message}</p>
         <button class="thin-button" type="button" data-install-close>Verstanden</button>
@@ -4982,6 +4985,52 @@ document.addEventListener("click", (event) => {
     closeInstallGuide();
   }
 });
+
+
+/* Shared modal and expanded-player scroll containment from the app. */
+(() => {
+  if (window.__musicStationScrollContainment) return;
+  window.__musicStationScrollContainment = true;
+
+  const modalSelector = '[role="dialog"][aria-modal="true"]';
+  const syncModalLock = () => {
+    const locked = Boolean(document.querySelector(modalSelector));
+    document.documentElement.classList.toggle("musicstation-modal-scroll-locked", locked);
+    document.body?.classList.toggle("musicstation-modal-scroll-locked", locked);
+  };
+
+  const observer = new MutationObserver(syncModalLock);
+  const startObserver = () => {
+    if (!document.body) return;
+    observer.observe(document.body, { childList: true, subtree: true });
+    syncModalLock();
+  };
+  if (document.body) startObserver();
+  else document.addEventListener("DOMContentLoaded", startObserver, { once: true });
+
+  const playerBandTop = () => playerRoot.querySelector(".player-bar")?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+  const queueCanScroll = (queue, deltaY) => {
+    if (!queue) return false;
+    const max = Math.max(0, queue.scrollHeight - queue.clientHeight);
+    if (max <= 1) return false;
+    return deltaY > 0 ? queue.scrollTop < max - 1 : deltaY < 0 && queue.scrollTop > 1;
+  };
+
+  document.addEventListener("wheel", (event) => {
+    const modal = document.querySelector(modalSelector);
+    if (modal) {
+      const scrollable = event.target instanceof Element ? event.target.closest(".playlist-picker-list, .install-guide-card, .playlist-edit-dialog") : null;
+      if (scrollable && modal.contains(scrollable) && queueCanScroll(scrollable, event.deltaY)) return;
+      event.preventDefault();
+      return;
+    }
+
+    if (event.clientY < playerBandTop()) return;
+    const queue = event.target instanceof Element ? event.target.closest(".queue-editor") : null;
+    if (queue && playerRoot.contains(queue) && queueCanScroll(queue, event.deltaY)) return;
+    event.preventDefault();
+  }, { passive: false, capture: true });
+})();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

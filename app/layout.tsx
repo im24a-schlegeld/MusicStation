@@ -4,7 +4,11 @@ export const metadata: Metadata = {
   title: "MusicStation",
   description: "A local-first music library and player.",
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/assets/brand-logo.png", apple: "/assets/brand-logo.png" },
+  icons: {
+    icon: [{ url: "/assets/brand-logo.png?v=musicstation", type: "image/png" }],
+    shortcut: ["/assets/brand-logo.png?v=musicstation"],
+    apple: "/assets/brand-logo.png?v=musicstation",
+  },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "MusicStation" },
 };
 

@@ -1464,3 +1464,92 @@ html body #app .app-shell > .add-page .add-form.add-form-clean {
   }
 }
 /* DESKTOP EXTENDED PLAYER CANONICAL V3 END */
+
+/* MUSICSTATION SYNC 2026-08-23: shared interaction/layout fixes only. */
+
+html.musicstation-playlist-picker-open,
+body.musicstation-playlist-picker-open,
+html.musicstation-modal-scroll-locked,
+body.musicstation-modal-scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+.playlist-picker-backdrop {
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+}
+
+.playlist-picker-list {
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.player-root,
+.player-root .player-bar {
+  overscroll-behavior: none !important;
+}
+
+.player-root input[type="range"],
+.player-root [data-player-progress],
+.player-root [data-player-volume] {
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+}
+
+.player-root .queue-editor {
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.toolbar > .year-filter {
+  order: 30 !important;
+}
+
+.toolbar > .sort-control.custom-sort-control {
+  order: 40 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  grid-template-columns: 28px minmax(0, 1fr) !important;
+  gap: 8px !important;
+}
+
+.toolbar > .sort-control .sort-control-label {
+  display: grid !important;
+  place-items: center !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  font-size: 21px !important;
+  line-height: 1 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 760px) {
+  .library-header {
+    position: relative !important;
+    padding-inline: 58px !important;
+  }
+
+  .library-header .archive-gif-lockup {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: auto !important;
+    max-width: calc(100% - 116px) !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+  }
+
+  .library-header .header-menu {
+    right: 8px !important;
+  }
+}
+/* MUSICSTATION SYNC 2026-08-23 END */
