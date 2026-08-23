@@ -16,7 +16,7 @@ In der Musikbibliothek können Releases durchsucht und nach Release-Typ oder Jah
   <img src="docs/images/musicstation-widget.jpg" alt="MusicStation – kompakter Player" width="780">
 </p>
 
-Der Player bietet unter anderem Play/Pause, vorherigen und nächsten Titel sowie Shuffle und Repeat.
+Das Player-Widget zeigt Cover, Songtitel und Interpret. Es enthält Play/Pause, vorherigen und nächsten Titel sowie Shuffle und Repeat.
 
 ## Speicherung
 
