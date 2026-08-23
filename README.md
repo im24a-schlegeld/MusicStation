@@ -1,9 +1,13 @@
 # MusicStation
 
 MusicStation die Website die ich Gemacht habe um meine eigene Lokale App darzustellen. Ich habe für mich eine App gemacht die ich Gemacht habe um einerseits mit Apps zu experimentieren und anderseits meinen personalisierten Player zu haben.
-<video controls src="https://raw.githubusercontent.com/im24a-schlegeld/MusicStation/main/Screen_Recording_20260822_154442_Ken%20Carson%20Archive.mp4"></video>
 
-[Video direkt öffnen](https://github.com/im24a-schlegeld/MusicStation/blob/main/Screen_Recording_20260822_154442_Ken%20Carson%20Archive.mp4)
+<video controls width="100%">
+  <source src="https://raw.githubusercontent.com/im24a-schlegeld/MusicStation/main/MusicStation_demo_compressed.mp4" type="video/mp4">
+  Dein Browser unterstützt das Video-Tag nicht.
+</video>
+
+[Video direkt öffnen](https://github.com/im24a-schlegeld/MusicStation/blob/main/MusicStation_demo_compressed.mp4)
 
 ## Features
 
