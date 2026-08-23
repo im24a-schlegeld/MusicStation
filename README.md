@@ -6,6 +6,8 @@ Ich habe das Projekt gemacht, weil ich ausprobieren wollte, wie eine eigene Anwe
 
 Releases, Cover und Audiodateien werden lokal auf dem jeweiligen Gerät gespeichert und nicht in eine zentrale Musikdatenbank hochgeladen.
 
+Die folgenden Bilder zeigen meine lokale App. Die öffentliche Website ist eine separate Version davon und entspricht nicht in allen Details der lokalen App.
+
 <p align="center">
   <img src="docs/images/musicstation-local-app.jpg" alt="MusicStation – lokale Musikbibliothek" width="420">
 </p>
