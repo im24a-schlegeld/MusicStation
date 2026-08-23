@@ -20,6 +20,7 @@ desktop.ini
 .vercel
 .env*
 *.bak-*
+/ken-library-vercel-project.zip
 /cleanup-v5-temp/
 /layout-v4-temp/
 /playlist-v6-temp/
