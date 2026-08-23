@@ -1,6 +1,6 @@
 # MusicStation
 
-MusicStation is an installable music archive for storing releases, cover art and audio on a device. It provides a library view, playlists and an add flow without requiring a server or cloud storage.
+MusicStation die Website die ich Gemacht habe um meine eigene Lokale App darzustellen. Ich habe für mich eine App gemacht die ich Gemacht habe um einerseits mit Apps zu experimentieren und anderseits meinen personalisierten Player zu haben.
 
 ## Features
 
