@@ -7,24 +7,16 @@ Ich habe das Projekt gemacht, weil ich ausprobieren wollte, wie eine eigene Anwe
 Releases, Cover und Audiodateien werden lokal auf dem jeweiligen Gerät gespeichert und nicht in eine zentrale Musikdatenbank hochgeladen.
 
 <p align="center">
-  <img src="docs/images/musicstation-local-app.jpg" alt="MusicStation – lokale App" width="420">
+  <img src="docs/images/musicstation-local-app.jpg" alt="MusicStation – lokale Musikbibliothek" width="420">
 </p>
+
+In der Musikbibliothek können Releases durchsucht und nach Release-Typ oder Jahr gefiltert werden. Die Reihenfolge kann ebenfalls geändert werden.
 
 <p align="center">
-  <img src="docs/images/musicstation-widget.jpg" alt="MusicStation – Player-Widget" width="700">
+  <img src="docs/images/musicstation-widget.jpg" alt="MusicStation – kompakter Player" width="780">
 </p>
 
-## Funktionen
-
-- eigene Releases mit Cover und Audiodateien hinzufügen
-- lokale Musikbibliothek anzeigen
-- Releases durchsuchen und filtern
-- nach Album, EP, Single und unveröffentlichten Releases filtern
-- Releases nach Jahr filtern
-- Musik abspielen
-- Playlists erstellen und verwalten
-- als PWA installieren
-- Teile der Anwendung offline verwenden
+Der Player bietet unter anderem Play/Pause, vorherigen und nächsten Titel sowie Shuffle und Repeat.
 
 ## Speicherung
 
