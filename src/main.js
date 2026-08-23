@@ -4925,8 +4925,76 @@ if (document.fonts?.ready) {
 const startupDataReady = loadDatabaseReleases();
 void hydrateNativePlaybackState();
 void consumePendingNativeAction();
-void finishStartupLoading(startupDataReady);
+void finishStartupLoading(startupDataReady).finally(() => {
+  window.setTimeout(showFirstVisitAddHint, 450);
+});
 
+
+
+const firstVisitAddHintStorageKey = "musicstation-add-hint-seen-v1";
+
+function hasSeenFirstVisitAddHint() {
+  try {
+    return localStorage.getItem(firstVisitAddHintStorageKey) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function rememberFirstVisitAddHint() {
+  try {
+    localStorage.setItem(firstVisitAddHintStorageKey, "1");
+  } catch {
+    // The hint simply returns on the next visit when storage is unavailable.
+  }
+}
+
+function closeFirstVisitAddHint() {
+  document.querySelector("[data-first-visit-add-hint]")?.remove();
+  rememberFirstVisitAddHint();
+}
+
+function openBurgerMenuFromFirstVisitHint() {
+  closeFirstVisitAddHint();
+  state.menuOpen = true;
+  render();
+
+  requestAnimationFrame(() => {
+    const addLink = document.querySelector('.burger-menu [href="#/add"]');
+    addLink?.classList.add("is-onboarding-target");
+    addLink?.focus({ preventScroll: true });
+  });
+}
+
+function showFirstVisitAddHint() {
+  if (hasSeenFirstVisitAddHint() || isAddRoute() || document.querySelector("[data-first-visit-add-hint]")) return;
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <aside class="first-visit-add-hint" data-first-visit-add-hint role="dialog" aria-modal="true" aria-labelledby="first-visit-add-title">
+      <div class="first-visit-add-card">
+        <div class="first-visit-burger-icon" aria-hidden="true"><span></span><span></span><span></span></div>
+        <p class="eyebrow">Start here</p>
+        <h2 id="first-visit-add-title">Add your music</h2>
+        <p>Open the burger menu in the header and choose <strong>Add Music</strong> to build your local MusicStation library.</p>
+        <div class="first-visit-add-actions">
+          <button class="thin-button" type="button" data-first-visit-show-menu>Show me</button>
+          <button class="first-visit-dismiss" type="button" data-first-visit-dismiss>Got it</button>
+        </div>
+      </div>
+    </aside>
+  `);
+}
+
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-first-visit-show-menu]")) {
+    openBurgerMenuFromFirstVisitHint();
+    return;
+  }
+
+  if (event.target.closest("[data-first-visit-dismiss]")) {
+    closeFirstVisitAddHint();
+  }
+});
 
 /* Generic PWA install helper retained from the local-music edition. */
 let deferredInstallPrompt = null;
