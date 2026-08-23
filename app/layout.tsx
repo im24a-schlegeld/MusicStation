@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Archive",
-  description: "Your personal music archive.",
+  title: "MusicStation",
+  description: "A local-first music library and player.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/assets/brand-logo.png", apple: "/assets/brand-logo.png" },
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Archive" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "MusicStation" },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#050505", viewportFit: "cover" };

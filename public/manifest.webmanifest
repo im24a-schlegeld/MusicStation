@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Archive",
-  "short_name": "Archive",
-  "description": "Your personal music archive.",
+  "name": "MusicStation",
+  "short_name": "MusicStation",
+  "description": "A local-first music library and player.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
