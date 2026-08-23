@@ -6,6 +6,15 @@ MusicStation is a local-first music library and player built as an installable P
 
 https://music-station-omega.vercel.app/
 
+## Demo
+
+<video controls width="100%">
+  <source src="https://raw.githubusercontent.com/im24a-schlegeld/MusicStation/main/MusicStation_demo_compressed.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+[Open the demo video](https://github.com/im24a-schlegeld/MusicStation/blob/main/MusicStation_demo_compressed.mp4)
+
 ## Features
 
 - Add releases with cover art and audio files
